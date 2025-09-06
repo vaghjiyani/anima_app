@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
+import 'signin_screen.dart';
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -68,8 +68,11 @@ class _IntroScreenState extends State<IntroScreen> {
   }
 
   void _getStarted() {
-    // Navigate to main app screen
-    // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+    // Navigate to sign-in screen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const SigninScreen()),
+    );
   }
 
   @override
@@ -93,6 +96,31 @@ class _IntroScreenState extends State<IntroScreen> {
                 child: Image.asset(
                   _introData[index]['image']!,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[300],
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 100,
+                              color: Colors.grey[600],
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Image not found',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               );
             },

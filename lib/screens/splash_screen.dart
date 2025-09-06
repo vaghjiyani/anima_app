@@ -102,6 +102,21 @@ class _SplashScreenState extends State<SplashScreen>
                                 width: 200,
                                 height: 200,
                                 fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 200,
+                                    height: 200,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.image,
+                                      size: 100,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ),
