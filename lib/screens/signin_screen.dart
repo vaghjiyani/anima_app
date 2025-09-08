@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import 'signup_screen.dart';
+import 'forgot_password_screen.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -212,11 +213,11 @@ class _SigninScreenState extends State<SigninScreen> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              // Handle forgot password
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Forgot password clicked'),
-                                  backgroundColor: Colors.blue,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ForgotPasswordScreen(),
                                 ),
                               );
                             },
