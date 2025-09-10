@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_colors.dart';
+import 'create_new_password_screen.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
   const VerificationCodeScreen({
@@ -80,9 +81,10 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
 
   void _verify() {
     if (_enteredCode.length == _codeLength) {
-      ScaffoldMessenger.of(
+      Navigator.push(
         context,
-      ).showSnackBar(SnackBar(content: Text('Verifying code: $_enteredCode')));
+        MaterialPageRoute(builder: (_) => const CreateNewPasswordScreen()),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter the full code.')),

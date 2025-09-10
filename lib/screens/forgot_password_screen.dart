@@ -12,7 +12,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   RecoveryMethod _selected = RecoveryMethod.phone;
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
@@ -21,6 +21,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   // Add animations for option cards
   late final Animation<double> _scaleAnimation;
   late final Animation<double> _buttonAnimation;
+
+  // Button press animation controller
+  late final AnimationController _buttonPressController;
 
   @override
   void initState() {
@@ -56,30 +59,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       ),
     );
 
+    // Initialize button press animation controller
+    _buttonPressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    // Button press tween is applied where needed via the controller if required
+
     _controller.forward();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _buttonPressController.dispose();
     super.dispose();
   }
 
   void _onContinue() {
-    // Add button press animation
-    final buttonController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    Animation<double> buttonPressAnimation =
-        Tween<double>(begin: 1.0, end: 0.95).animate(
-          CurvedAnimation(parent: buttonController, curve: Curves.easeInOut),
-        );
-
-    buttonController.forward().then((_) {
-      buttonController.reverse().then((_) {
-        buttonController.dispose();
+    // Use the pre-initialized button press animation controller
+    _buttonPressController.forward().then((_) {
+      _buttonPressController.reverse().then((_) {
         Navigator.push(
           context,
           PageRouteBuilder(
@@ -121,9 +122,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        automaticallyImplyLeading: false,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 24),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 24),
         ),
       ),
       body: Container(
@@ -135,77 +137,86 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: const Text(
-                            'Forgot Password',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Select which contact details should we use to reset your password',
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
-                        ),
-                        const SizedBox(height: 20),
-                        _buildOptionCard(
-                          method: RecoveryMethod.phone,
-                          icon: Icons.sms_outlined,
-                          title: 'via SMS',
-                          subtitle: '+1 111 ******99',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildOptionCard(
-                          method: RecoveryMethod.email,
-                          icon: Icons.email_outlined,
-                          title: 'via Email',
-                          subtitle: 'an**ley@yourdomain.com',
-                        ),
-                        const SizedBox(height: 24),
-                        ScaleTransition(
-                          scale: _buttonAnimation,
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _onContinue,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green[400],
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(28),
-                                ),
-                                elevation: 8,
-                                shadowColor: Colors.black.withOpacity(0.3),
-                              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
                               child: const Text(
-                                'Continue',
+                                'Forgot Password',
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 28,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.black,
                                 ),
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Select which contact details should we use to reset your password',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            _buildOptionCard(
+                              method: RecoveryMethod.phone,
+                              icon: Icons.sms_outlined,
+                              title: 'via SMS',
+                              subtitle: '+1 111 ******99',
+                            ),
+                            const SizedBox(height: 12),
+                            _buildOptionCard(
+                              method: RecoveryMethod.email,
+                              icon: Icons.email_outlined,
+                              title: 'via Email',
+                              subtitle: 'an**ley@yourdomain.com',
+                            ),
+                            const SizedBox(height: 24),
+                            ScaleTransition(
+                              scale: _buttonAnimation,
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _onContinue,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green[400],
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(28),
+                                    ),
+                                    elevation: 8,
+                                    shadowColor: Colors.black.withOpacity(0.3),
+                                  ),
+                                  child: const Text(
+                                    'Continue',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
