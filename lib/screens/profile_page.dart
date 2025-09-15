@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 
@@ -15,6 +18,9 @@ class _ProfilePageState extends State<ProfilePage> {
   final _nicknameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+
+  File? _profileImageFile;
+  static const String _profileImagePathKey = 'profile_image_path';
 
   String _selectedGender = 'Male';
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
@@ -35,6 +41,41 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       Navigator.pop(context);
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedProfileImage();
+  }
+
+  Future<void> _loadSavedProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString(_profileImagePathKey);
+    if (path != null && path.isNotEmpty) {
+      final file = File(path);
+      if (await file.exists()) {
+        setState(() {
+          _profileImageFile = file;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickAndSaveProfileImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    if (!await file.exists()) return;
+
+    setState(() {
+      _profileImageFile = file;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_profileImagePathKey, file.path);
   }
 
   @override
@@ -101,38 +142,52 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ),
                                 ],
                               ),
-                              child: Icon(
-                                Icons.person,
-                                size: ResponsiveHelper.isDesktop(context)
-                                    ? 80
-                                    : 60,
-                                color: Colors.black54,
+                              child: ClipOval(
+                                child: _profileImageFile != null
+                                    ? Image.file(
+                                        _profileImageFile!,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      )
+                                    : Icon(
+                                        Icons.person,
+                                        size:
+                                            ResponsiveHelper.isDesktop(context)
+                                            ? 80
+                                            : 60,
+                                        color: Colors.black54,
+                                      ),
                               ),
                             ),
                             Positioned(
                               bottom: 0,
                               right: 0,
-                              child: Container(
-                                width: ResponsiveHelper.isDesktop(context)
-                                    ? 44
-                                    : 36,
-                                height: ResponsiveHelper.isDesktop(context)
-                                    ? 44
-                                    : 36,
-                                decoration: BoxDecoration(
-                                  color: Colors.green[400],
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 3,
+                              child: InkWell(
+                                onTap: _pickAndSaveProfileImage,
+                                borderRadius: BorderRadius.circular(999),
+                                child: Container(
+                                  width: ResponsiveHelper.isDesktop(context)
+                                      ? 44
+                                      : 36,
+                                  height: ResponsiveHelper.isDesktop(context)
+                                      ? 44
+                                      : 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green[400],
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 3,
+                                    ),
                                   ),
-                                ),
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: ResponsiveHelper.isDesktop(context)
-                                      ? 24
-                                      : 20,
+                                  child: Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: ResponsiveHelper.isDesktop(context)
+                                        ? 24
+                                        : 20,
+                                  ),
                                 ),
                               ),
                             ),

@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import 'profile_page.dart';
+import 'top_anime_page.dart';
+import 'manga_page.dart';
+import 'magazines_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,15 +17,39 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
+  File? _profileImageFile;
+  static const String _profileImagePathKey = 'profile_image_path';
+  int _selectedIndex = 0;
 
-  void _logout(BuildContext context) {
-    Navigator.popUntil(context, (route) => route.isFirst);
+  void _onBottomNavTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedProfileImage();
+  }
+
+  Future<void> _loadSavedProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString(_profileImagePathKey);
+    if (path != null && path.isNotEmpty) {
+      final file = File(path);
+      if (await file.exists()) {
+        setState(() {
+          _profileImageFile = file;
+        });
+      }
+    }
   }
 
   @override
@@ -49,6 +78,11 @@ class _HomePageState extends State<HomePage> {
       _AnimeCardData('Your Name', 'assets/images/download_2.jpeg'),
     ];
 
+    final String query = _searchController.text.trim().toLowerCase();
+    final List<_AnimeCardData> filteredTrending = query.isEmpty
+        ? trending
+        : trending.where((a) => a.title.toLowerCase().contains(query)).toList();
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -61,27 +95,29 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ProfilePage()),
               );
+              await _loadSavedProfileImage();
             },
-            icon: const Icon(Icons.person, color: Colors.white),
+            icon: (_profileImageFile != null)
+                ? CircleAvatar(
+                    radius: 16,
+                    backgroundImage: FileImage(_profileImageFile!),
+                  )
+                : const Icon(Icons.person, color: Colors.white),
             tooltip: 'Profile',
-          ),
-          IconButton(
-            onPressed: () => _logout(context),
-            icon: const Icon(Icons.logout, color: Colors.white),
-            tooltip: 'Logout',
           ),
         ],
       ),
       body: Container(
         width: double.infinity,
-        height: double.infinity,
         decoration: AppColors.primaryGradientDecoration,
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.only(
             top: ResponsiveHelper.isDesktop(context) ? 80 : 60,
             bottom: 12,
@@ -94,123 +130,324 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Search Bar
-                  _SearchBar(controller: _searchController),
-
-                  SizedBox(
-                    height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
-                  ),
-
-                  // Featured banners with slider
-                  _SectionHeader(title: 'Featured'),
-                  SizedBox(
-                    height: ResponsiveHelper.getBannerHeight(context),
-                    child: ListView.builder(
-                      padding: ResponsiveHelper.getResponsivePadding(context),
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: bannerImages.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            right: index < bannerImages.length - 1 ? 12 : 0,
-                          ),
-                          child: _BannerCard(imagePath: bannerImages[index]),
-                        );
-                      },
+                  if (_selectedIndex == 0) ...[
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
                     ),
-                  ),
-
-                  SizedBox(
-                    height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
-                  ),
-
-                  // Gradient category chips section
-                  // Categories section
-                  Container(
-                    margin: EdgeInsets.symmetric(
-                      horizontal: ResponsiveHelper.isDesktop(context) ? 16 : 12,
+                    _SearchBar(controller: _searchController),
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
                     ),
-                    padding: EdgeInsets.all(
-                      ResponsiveHelper.isDesktop(context) ? 20 : 16,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0x66ffffff), Color(0x44ffffff)],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SectionHeader(title: 'Categories', padding: 0),
-                        SizedBox(
-                          height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
-                        ),
-                        SizedBox(
-                          height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: categories.length,
-                            separatorBuilder: (_, __) => SizedBox(
-                              width: ResponsiveHelper.isDesktop(context)
-                                  ? 12
-                                  : 8,
+                    _SectionHeader(title: 'Featured'),
+                    SizedBox(
+                      height: ResponsiveHelper.getBannerHeight(context),
+                      child: ListView.builder(
+                        padding: ResponsiveHelper.getResponsivePadding(context),
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: bannerImages.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              right: index < bannerImages.length - 1 ? 12 : 0,
                             ),
-                            itemBuilder: (context, index) {
-                              return _CategoryChip(label: categories[index]);
-                            },
-                          ),
-                        ),
-                      ],
+                            child: _BannerCard(imagePath: bannerImages[index]),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-
-                  SizedBox(
-                    height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
-                  ),
-
-                  // Trending list with horizontal scroll
-                  _SectionHeader(title: 'Trending Now'),
-                  SizedBox(
-                    height: ResponsiveHelper.getAnimeCardHeight(context),
-                    child: ListView.builder(
-                      padding: ResponsiveHelper.getResponsivePadding(context),
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: trending.length,
-                      itemBuilder: (context, index) {
-                        final item = trending[index];
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            right: index < trending.length - 1 ? 12 : 0,
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
+                    ),
+                    Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: ResponsiveHelper.isDesktop(context)
+                            ? 16
+                            : 12,
+                      ),
+                      padding: EdgeInsets.all(
+                        ResponsiveHelper.isDesktop(context) ? 20 : 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0x66ffffff), Color(0x44ffffff)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionHeader(title: 'Categories', padding: 0),
+                          SizedBox(
+                            height: ResponsiveHelper.isDesktop(context)
+                                ? 16
+                                : 12,
                           ),
-                          child: _AnimeCard(
-                            title: item.title,
-                            imagePath: item.imagePath,
+                          SizedBox(
+                            height: ResponsiveHelper.isDesktop(context)
+                                ? 52
+                                : 44,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: categories.length,
+                              separatorBuilder: (_, __) => SizedBox(
+                                width: ResponsiveHelper.isDesktop(context)
+                                    ? 12
+                                    : 8,
+                              ),
+                              itemBuilder: (context, index) {
+                                return _CategoryChip(label: categories[index]);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
+                    ),
+                    _SectionHeader(title: 'Trending Now'),
+                    SizedBox(
+                      height: ResponsiveHelper.getAnimeCardHeight(context),
+                      child: ListView.builder(
+                        padding: ResponsiveHelper.getResponsivePadding(context),
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: trending.length,
+                        itemBuilder: (context, index) {
+                          final item = trending[index];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              right: index < trending.length - 1 ? 12 : 0,
+                            ),
+                            child: _AnimeCard(
+                              title: item.title,
+                              imagePath: item.imagePath,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 20 : 12,
+                    ),
+
+                    // Top Anime section
+                    _SectionHeader(title: 'Top Anime'),
+                    SizedBox(height: 0),
+                    _SeeAllButton(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TopAnimePage(),
                           ),
                         );
                       },
                     ),
-                  ),
-                  SizedBox(
-                    height: ResponsiveHelper.isDesktop(context) ? 20 : 12,
-                  ),
+                    SizedBox(
+                      height: ResponsiveHelper.getAnimeCardHeight(context),
+                      child: ListView.builder(
+                        padding: ResponsiveHelper.getResponsivePadding(context),
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: trending.length,
+                        itemBuilder: (context, index) {
+                          final item = trending[index];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              right: index < trending.length - 1 ? 12 : 0,
+                            ),
+                            child: _AnimeCard(
+                              title: item.title,
+                              imagePath: item.imagePath,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 20 : 12,
+                    ),
+
+                    // Manga section
+                    _SectionHeader(title: 'Manga'),
+                    SizedBox(height: 0),
+                    _SeeAllButton(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MangaPage()),
+                        );
+                      },
+                    ),
+                    SizedBox(
+                      height: ResponsiveHelper.getAnimeCardHeight(context),
+                      child: ListView.builder(
+                        padding: ResponsiveHelper.getResponsivePadding(context),
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: trending.length,
+                        itemBuilder: (context, index) {
+                          final item = trending[index];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              right: index < trending.length - 1 ? 12 : 0,
+                            ),
+                            child: _AnimeCard(
+                              title: item.title,
+                              imagePath: item.imagePath,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 20 : 12,
+                    ),
+
+                    // Magazines section
+                    _SectionHeader(title: 'Magazines'),
+                    SizedBox(height: 0),
+                    _SeeAllButton(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MagazinesPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    SizedBox(
+                      height: ResponsiveHelper.getAnimeCardHeight(context),
+                      child: ListView.builder(
+                        padding: ResponsiveHelper.getResponsivePadding(context),
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: trending.length,
+                        itemBuilder: (context, index) {
+                          final item = trending[index];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              right: index < trending.length - 1 ? 12 : 0,
+                            ),
+                            child: _AnimeCard(
+                              title: item.title,
+                              imagePath: item.imagePath,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ] else if (_selectedIndex == 1) ...[
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
+                    ),
+                    _SearchBar(controller: _searchController),
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
+                    ),
+                    _SectionHeader(title: 'Results'),
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 12 : 8,
+                    ),
+                    if (filteredTrending.isEmpty)
+                      Padding(
+                        padding: ResponsiveHelper.getResponsivePadding(context),
+                        child: Text(
+                          'No matches found',
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              16,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        padding: ResponsiveHelper.getResponsivePadding(context),
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: filteredTrending.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredTrending[index];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: index < filteredTrending.length - 1
+                                  ? 12
+                                  : 0,
+                            ),
+                            child: _SearchResultTile(
+                              title: item.title,
+                              imagePath: item.imagePath,
+                            ),
+                          );
+                        },
+                      ),
+                  ] else ...[
+                    SizedBox(
+                      height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
+                    ),
+                    Padding(
+                      padding: ResponsiveHelper.getResponsivePadding(context),
+                      child: Text(
+                        'Favorites coming soon',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w600,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onBottomNavTapped,
+        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFF43a047),
+        unselectedItemColor: Colors.black54,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search_outlined),
+            activeIcon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_border),
+            activeIcon: Icon(Icons.favorite),
+            label: 'Favorite',
+          ),
+        ],
       ),
     );
   }
@@ -232,6 +469,30 @@ class _SectionHeader extends StatelessWidget {
           fontSize: ResponsiveHelper.getResponsiveFontSize(context, 20),
           fontWeight: FontWeight.w700,
           color: Colors.black,
+        ),
+      ),
+    );
+  }
+}
+
+class _SeeAllButton extends StatelessWidget {
+  const _SeeAllButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final horizontal =
+        ResponsiveHelper.getResponsivePadding(context).horizontal / 2;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: horizontal),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: onTap,
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFF43a047)),
+          icon: const Icon(Icons.chevron_right),
+          label: const Text('See all'),
         ),
       ),
     );
@@ -404,6 +665,59 @@ class _AnimeCardData {
   final String imagePath;
 }
 
+class _SearchResultTile extends StatelessWidget {
+  const _SearchResultTile({required this.title, required this.imagePath});
+
+  final String title;
+  final String imagePath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black.withOpacity(0.1)),
+      ),
+      child: ListTile(
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: ResponsiveHelper.isDesktop(context) ? 16 : 12,
+          vertical: ResponsiveHelper.isDesktop(context) ? 8 : 6,
+        ),
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.asset(
+            imagePath,
+            width: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+            height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              width: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+              height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+              color: Colors.white,
+              child: Icon(
+                Icons.image_not_supported,
+                color: Colors.black54,
+                size: ResponsiveHelper.getIconSize(context, 20),
+              ),
+            ),
+          ),
+        ),
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SearchBar extends StatefulWidget {
   const _SearchBar({required this.controller});
 
@@ -504,6 +818,10 @@ class _SearchBarState extends State<_SearchBar>
                 onTap: () => _onFocusChange(true),
                 onSubmitted: (_) => _onFocusChange(false),
                 onEditingComplete: () => _onFocusChange(false),
+                onChanged: (_) {
+                  // let parent listeners update results via setState
+                  setState(() {});
+                },
                 style: TextStyle(
                   fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
                 ),
@@ -549,9 +867,6 @@ class _SearchBarState extends State<_SearchBar>
                     vertical: ResponsiveHelper.isDesktop(context) ? 18 : 15,
                   ),
                 ),
-                onChanged: (value) {
-                  setState(() {});
-                },
               ),
             ),
           ),
