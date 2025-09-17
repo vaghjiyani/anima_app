@@ -20,18 +20,31 @@ class TopAnimePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Top Anime'),
-        backgroundColor: Colors.green[400],
+        title: Text(
+          'Top Anime',
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Container(
-        decoration: AppColors.primaryGradientDecoration,
+        decoration: AppColors.themedPrimaryGradient(context),
         child: ListView.separated(
           padding: ResponsiveHelper.getResponsivePadding(context),
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemCount: items.length,
           itemBuilder: (context, index) {
+            final theme = Theme.of(context);
+            final tileColor = theme.brightness == Brightness.dark
+                ? theme.colorScheme.surface.withOpacity(0.7)
+                : Colors.white.withOpacity(0.9);
             return ListTile(
-              tileColor: Colors.white.withOpacity(0.9),
+              tileColor: tileColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

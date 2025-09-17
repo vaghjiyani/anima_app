@@ -85,9 +85,14 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Fill your Profile',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         centerTitle: true,
         leading: IconButton(
@@ -98,7 +103,7 @@ class _ProfilePageState extends State<ProfilePage> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: AppColors.primaryGradientDecoration,
+        decoration: AppColors.themedPrimaryGradient(context),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
@@ -156,7 +161,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                             ResponsiveHelper.isDesktop(context)
                                             ? 80
                                             : 60,
-                                        color: Colors.black54,
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white70
+                                            : Colors.black54,
                                       ),
                               ),
                             ),
@@ -282,7 +291,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       Text(
                         'Gender',
                         style: TextStyle(
-                          color: Colors.black,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
                           fontSize: ResponsiveHelper.getResponsiveFontSize(
                             context,
                             16,
@@ -312,7 +323,11 @@ class _ProfilePageState extends State<ProfilePage> {
                             isExpanded: true,
                             icon: Icon(
                               Icons.keyboard_arrow_down,
-                              color: Colors.black54,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white70
+                                  : Colors.black54,
                               size: ResponsiveHelper.getIconSize(context, 24),
                             ),
                             items: _genderOptions.map((String gender) {
@@ -321,7 +336,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                 child: Text(
                                   gender,
                                   style: TextStyle(
-                                    color: Colors.black,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
                                     fontSize:
                                         ResponsiveHelper.getResponsiveFontSize(
                                           context,
@@ -414,7 +433,9 @@ class _ProfileTextField extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             fontWeight: FontWeight.w500,
           ),
@@ -425,29 +446,43 @@ class _ProfileTextField extends StatelessWidget {
           keyboardType: keyboardType,
           validator: validator,
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: Colors.black.withOpacity(0.6),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.black.withOpacity(0.6),
               fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             ),
             prefixIcon: Icon(
               prefixIcon,
-              color: Colors.black54,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.black54,
               size: ResponsiveHelper.getIconSize(context, 24),
             ),
             filled: true,
             fillColor: Colors.white.withOpacity(0.9),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.black.withOpacity(0.3)),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white24
+                    : Colors.black.withOpacity(0.3),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.black.withOpacity(0.3)),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white24
+                    : Colors.black.withOpacity(0.3),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

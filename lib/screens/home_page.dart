@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
+import '../widgets/app_sidebar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
@@ -7,6 +9,8 @@ import 'profile_page.dart';
 import 'top_anime_page.dart';
 import 'manga_page.dart';
 import 'magazines_page.dart';
+import 'search_page.dart';
+import 'favorites_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,6 +26,20 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
   void _onBottomNavTapped(int index) {
+    if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SearchPage()),
+      );
+      return;
+    }
+    if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const FavoritesPage()),
+      );
+      return;
+    }
     setState(() {
       _selectedIndex = index;
     });
@@ -88,12 +106,33 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Anima',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            onPressed: () {
+              final brightness = Theme.of(context).brightness;
+              final mode = brightness == Brightness.dark
+                  ? ThemeMode.light
+                  : ThemeMode.dark;
+              appKey.currentState?.setThemeMode(mode);
+            },
+            icon: Icon(
+              Theme.of(context).brightness == Brightness.dark
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+              color: Colors.white,
+            ),
+            tooltip: 'Toggle theme',
+          ),
           IconButton(
             onPressed: () async {
               await Navigator.push(
@@ -112,9 +151,10 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+      drawer: const AppSidebar(),
       body: Container(
         width: double.infinity,
-        decoration: AppColors.primaryGradientDecoration,
+        decoration: AppColors.themedPrimaryGradient(context),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -409,7 +449,9 @@ class _HomePageState extends State<HomePage> {
                       child: Text(
                         'Favorites coming soon',
                         style: TextStyle(
-                          color: Colors.black,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
                           fontWeight: FontWeight.w600,
                           fontSize: ResponsiveHelper.getResponsiveFontSize(
                             context,
@@ -468,7 +510,9 @@ class _SectionHeader extends StatelessWidget {
         style: TextStyle(
           fontSize: ResponsiveHelper.getResponsiveFontSize(context, 20),
           fontWeight: FontWeight.w700,
-          color: Colors.black,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black,
         ),
       ),
     );
@@ -624,7 +668,9 @@ class _AnimeCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
                   fontWeight: FontWeight.w600,
                   fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
                 ),
@@ -637,27 +683,7 @@ class _AnimeCard extends StatelessWidget {
   }
 }
 
-class _GradientSection extends StatelessWidget {
-  const _GradientSection({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0x66ffffff), Color(0x44ffffff)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: child,
-    );
-  }
-}
+// Removed unused _GradientSection widget
 
 class _AnimeCardData {
   const _AnimeCardData(this.title, this.imagePath);
@@ -697,7 +723,9 @@ class _SearchResultTile extends StatelessWidget {
               color: Colors.white,
               child: Icon(
                 Icons.image_not_supported,
-                color: Colors.black54,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : Colors.black54,
                 size: ResponsiveHelper.getIconSize(context, 20),
               ),
             ),
@@ -708,7 +736,9 @@ class _SearchResultTile extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
             fontWeight: FontWeight.w600,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
           ),

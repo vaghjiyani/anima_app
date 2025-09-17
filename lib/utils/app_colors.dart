@@ -53,6 +53,25 @@ class AppColors {
     ),
   );
 
+  // Context-aware gradient that dims for dark mode
+  static BoxDecoration themedPrimaryGradient(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    if (!isDark) return primaryGradientDecoration;
+    return const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF2C3E50),
+          Color(0xFF1B2838),
+          Color(0xFF0F2027),
+          Color(0xFF0B1116),
+        ],
+        stops: [0.0, 0.3, 0.7, 1.0],
+      ),
+    );
+  }
+
   static BoxDecoration get blueGradientDecoration => const BoxDecoration(
     gradient: LinearGradient(
       begin: Alignment.topCenter,
