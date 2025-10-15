@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
+import '../services/auth_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -34,12 +35,39 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved successfully!')),
-      );
-      Navigator.pop(context);
+      try {
+        final user = AuthService.currentUser;
+        if (user != null) {
+          await user.updateDisplayName(_fullNameController.text);
+          
+          // Save additional profile data to SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_nickname', _nicknameController.text);
+          await prefs.setString('user_phone', _phoneController.text);
+          await prefs.setString('user_gender', _selectedGender);
+        }
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile saved successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save profile: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -47,6 +75,17 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _loadSavedProfileImage();
+    _loadUserData();
+  }
+
+  void _loadUserData() {
+    final user = AuthService.currentUser;
+    if (user != null) {
+      setState(() {
+        _emailController.text = user.email ?? '';
+        _fullNameController.text = user.displayName ?? '';
+      });
+    }
   }
 
   Future<void> _loadSavedProfileImage() async {
@@ -60,6 +99,15 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     }
+    
+    // Load additional profile data
+    final nickname = prefs.getString('user_nickname');
+    final phone = prefs.getString('user_phone');
+    final gender = prefs.getString('user_gender');
+    
+    if (nickname != null) _nicknameController.text = nickname;
+    if (phone != null) _phoneController.text = phone;
+    if (gender != null) _selectedGender = gender;
   }
 
   Future<void> _pickAndSaveProfileImage() async {
@@ -244,24 +292,70 @@ class _ProfilePageState extends State<ProfilePage> {
                         height: ResponsiveHelper.isDesktop(context) ? 20 : 16,
                       ),
 
-                      // Email Field
+                      // Email Field (Read-only)
                       _ProfileTextField(
                         controller: _emailController,
                         label: 'Email',
-                        hint: 'Enter your email',
+                        hint: 'Your email address',
                         prefixIcon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
+                        readOnly: true,
+                        validator: null,
+                      ),
+
+                      SizedBox(
+                        height: ResponsiveHelper.isDesktop(context) ? 20 : 16,
+                      ),
+
+                      // Account Created Date
+                      Text(
+                        'Account Created',
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            16,
+                          ),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(
+                        height: ResponsiveHelper.isDesktop(context) ? 12 : 8,
+                      ),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: ResponsiveHelper.isDesktop(context) ? 20 : 16,
+                          vertical: ResponsiveHelper.isDesktop(context) ? 16 : 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.black.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              color: Colors.black54,
+                              size: ResponsiveHelper.getIconSize(context, 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              AuthService.currentUser?.metadata.creationTime != null
+                                  ? '${AuthService.currentUser!.metadata.creationTime!.day}/${AuthService.currentUser!.metadata.creationTime!.month}/${AuthService.currentUser!.metadata.creationTime!.year}'
+                                  : 'Unknown',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
 
                       SizedBox(
@@ -416,6 +510,7 @@ class _ProfileTextField extends StatelessWidget {
     required this.prefixIcon,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.readOnly = false,
   });
 
   final TextEditingController controller;
@@ -424,6 +519,7 @@ class _ProfileTextField extends StatelessWidget {
   final IconData prefixIcon;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -445,6 +541,7 @@ class _ProfileTextField extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
+          readOnly: readOnly,
           style: TextStyle(
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.white
@@ -467,7 +564,9 @@ class _ProfileTextField extends StatelessWidget {
               size: ResponsiveHelper.getIconSize(context, 24),
             ),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.9),
+            fillColor: readOnly 
+                ? Colors.grey.withOpacity(0.3)
+                : Colors.white.withOpacity(0.9),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(

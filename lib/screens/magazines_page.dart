@@ -16,14 +16,34 @@ class MagazinesPage extends StatelessWidget {
     ];
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Magazines'),
-        backgroundColor: Colors.green[400],
+        title: Text(
+          'Magazines',
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black,
+        ),
       ),
       body: Container(
-        decoration: AppColors.primaryGradientDecoration,
+        decoration: AppColors.themedPrimaryGradient(context),
         child: ListView.separated(
-          padding: ResponsiveHelper.getResponsivePadding(context),
+          padding: EdgeInsets.only(
+            top: ResponsiveHelper.isDesktop(context) ? 100 : 80,
+            left: ResponsiveHelper.getResponsivePadding(context).left,
+            right: ResponsiveHelper.getResponsivePadding(context).right,
+            bottom: ResponsiveHelper.getResponsivePadding(context).bottom,
+          ),
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemCount: items.length,
           itemBuilder: (context, index) {

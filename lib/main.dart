@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/splash_screen.dart';
+import 'widgets/auth_wrapper.dart';
 
-final GlobalKey<_MyAppState> appKey = GlobalKey<_MyAppState>();
+final GlobalKey<MyAppState> appKey = GlobalKey<MyAppState>();
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(MyApp(key: appKey));
 }
 
@@ -12,10 +16,10 @@ class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<MyApp> createState() => MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class MyAppState extends State<MyApp> {
   static const String _themeModeKey = 'theme_mode';
   ThemeMode _themeMode = ThemeMode.system;
 
@@ -87,7 +91,7 @@ class _MyAppState extends State<MyApp> {
       theme: light,
       darkTheme: dark,
       themeMode: _themeMode,
-      home: const SplashScreen(),
+      home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
     );
   }

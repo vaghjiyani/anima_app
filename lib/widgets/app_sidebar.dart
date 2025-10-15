@@ -4,6 +4,7 @@ import '../screens/manga_page.dart';
 import '../screens/magazines_page.dart';
 import '../screens/profile_page.dart';
 import '../utils/app_colors.dart';
+import '../services/auth_service.dart';
 import '../screens/signin_screen.dart';
 import '../screens/theme_settings_page.dart';
 
@@ -187,12 +188,15 @@ class _AppSidebarState extends State<AppSidebar>
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12.0),
                   child: _LogoutTile(
-                    onTap: () {
+                    onTap: () async {
                       Navigator.pop(context);
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const SigninScreen()),
-                        (route) => false,
-                      );
+                      await AuthService.signOut();
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const SigninScreen()),
+                          (route) => false,
+                        );
+                      }
                     },
                   ),
                 ),

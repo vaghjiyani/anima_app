@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../widgets/app_sidebar.dart';
+import '../services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
@@ -116,6 +117,11 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         centerTitle: true,
+        iconTheme: IconThemeData(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black,
+        ),
         actions: [
           IconButton(
             onPressed: () {
@@ -129,7 +135,9 @@ class _HomePageState extends State<HomePage> {
               Theme.of(context).brightness == Brightness.dark
                   ? Icons.light_mode
                   : Icons.dark_mode,
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
             ),
             tooltip: 'Toggle theme',
           ),
@@ -146,7 +154,12 @@ class _HomePageState extends State<HomePage> {
                     radius: 16,
                     backgroundImage: FileImage(_profileImageFile!),
                   )
-                : const Icon(Icons.person, color: Colors.white),
+                : Icon(
+                    Icons.person,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
             tooltip: 'Profile',
           ),
         ],

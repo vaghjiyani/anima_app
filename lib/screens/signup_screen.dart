@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import '../services/auth_service.dart';
 import 'signin_screen.dart';
+import 'home_page.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -17,6 +19,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _rememberMe = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -26,15 +29,43 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _signUp() {
-    if (_formKey.currentState!.validate()) {
-      // Handle sign up logic here
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sign up successful!'),
-          backgroundColor: Colors.green,
-        ),
+  Future<void> _signUp() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      await AuthService.signUpWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
+      
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SigninScreen(),
+            settings: const RouteSettings(arguments: 'signup_success'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -257,7 +288,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: _signUp,
+                          onPressed: _isLoading ? null : _signUp,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green[400],
                             foregroundColor: Colors.white,
@@ -267,13 +298,22 @@ class _SignupScreenState extends State<SignupScreen> {
                             elevation: 8,
                             shadowColor: Colors.black.withValues(alpha: 0.3),
                           ),
-                          child: const Text(
-                            "Sign Up",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  "Sign Up",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
 
@@ -310,42 +350,6 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           ],
                         ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Or divider
-                      const Center(
-                        child: Text(
-                          "or",
-                          style: TextStyle(color: Colors.black54, fontSize: 16),
-                        ),
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      // Social login icons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildIconButton(
-                            iconPath: 'assets/icons/facebook.png',
-                            fallbackIcon: Icons.facebook,
-                            onTap: () {},
-                          ),
-                          const SizedBox(width: 20),
-                          _buildIconButton(
-                            iconPath: 'assets/icons/google.png',
-                            fallbackIcon: Icons.g_mobiledata,
-                            onTap: () {},
-                          ),
-                          const SizedBox(width: 20),
-                          _buildIconButton(
-                            iconPath: 'assets/icons/apple.png',
-                            fallbackIcon: Icons.apple,
-                            onTap: () {},
-                          ),
-                        ],
                       ),
 
                       const SizedBox(height: 20),
@@ -429,40 +433,5 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _buildIconButton({
-    required String iconPath,
-    required IconData fallbackIcon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(child: _buildIcon(iconPath, fallbackIcon)),
-      ),
-    );
-  }
 
-  Widget _buildIcon(String iconPath, IconData fallbackIcon) {
-    return Image.asset(
-      iconPath,
-      width: 24,
-      height: 24,
-      errorBuilder: (context, error, stackTrace) {
-        return Icon(fallbackIcon, size: 24, color: Colors.black54);
-      },
-    );
-  }
 }

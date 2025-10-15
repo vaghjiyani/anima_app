@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
-import 'verification_code_screen.dart';
+import '../services/auth_service.dart';
 
-enum RecoveryMethod { phone, email }
+
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -13,7 +13,8 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     with TickerProviderStateMixin {
-  RecoveryMethod _selected = RecoveryMethod.phone;
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
@@ -74,45 +75,53 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   void dispose() {
     _controller.dispose();
     _buttonPressController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
-  void _onContinue() {
-    // Use the pre-initialized button press animation controller
-    _buttonPressController.forward().then((_) {
-      _buttonPressController.reverse().then((_) {
-        Navigator.push(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const VerificationCodeScreen(),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-                  var curve = Curves.easeInOut;
-                  var curveTween = CurveTween(curve: curve);
-                  var fadeAnimation = Tween<double>(
-                    begin: 0.0,
-                    end: 1.0,
-                  ).animate(animation.drive(curveTween));
-
-                  var slideAnimation = Tween<Offset>(
-                    begin: const Offset(0.05, 0.0),
-                    end: Offset.zero,
-                  ).animate(animation.drive(curveTween));
-
-                  return FadeTransition(
-                    opacity: fadeAnimation,
-                    child: SlideTransition(
-                      position: slideAnimation,
-                      child: child,
-                    ),
-                  );
-                },
-            transitionDuration: const Duration(milliseconds: 400),
+  Future<void> _onContinue() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email address'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      await AuthService.sendPasswordResetEmail(email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password reset email sent! Check your inbox.'),
+            backgroundColor: Colors.green,
           ),
         );
-      });
-    });
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -163,25 +172,44 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Select which contact details should we use to reset your password',
+                              'Enter your email address to receive a password reset link',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.black54,
                               ),
                             ),
                             const SizedBox(height: 20),
-                            _buildOptionCard(
-                              method: RecoveryMethod.phone,
-                              icon: Icons.sms_outlined,
-                              title: 'via SMS',
-                              subtitle: '+1 111 ******99',
-                            ),
-                            const SizedBox(height: 12),
-                            _buildOptionCard(
-                              method: RecoveryMethod.email,
-                              icon: Icons.email_outlined,
-                              title: 'via Email',
-                              subtitle: 'an**ley@yourdomain.com',
+                            TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              style: const TextStyle(color: Colors.black),
+                              decoration: InputDecoration(
+                                hintText: 'Enter your email address',
+                                hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.6)),
+                                prefixIcon: const Icon(Icons.email_outlined, color: Colors.black54),
+                                filled: true,
+                                fillColor: Colors.white.withValues(alpha: 0.8),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.black.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.black.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 24),
                             ScaleTransition(
@@ -190,7 +218,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                 width: double.infinity,
                                 height: 56,
                                 child: ElevatedButton(
-                                  onPressed: _onContinue,
+                                  onPressed: _isLoading ? null : _onContinue,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.green[400],
                                     foregroundColor: Colors.white,
@@ -200,13 +228,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                     elevation: 8,
                                     shadowColor: Colors.black.withOpacity(0.3),
                                   ),
-                                  child: const Text(
-                                    'Continue',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Send Reset Email',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -225,103 +262,5 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     );
   }
 
-  Widget _buildOptionCard({
-    required RecoveryMethod method,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final bool isSelected = _selected == method;
-    return InkWell(
-      onTap: () => setState(() => _selected = method),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutBack,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? Colors.green[400]!
-                : Colors.black.withOpacity(0.2),
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isSelected ? 0.15 : 0.08),
-              blurRadius: isSelected ? 12 : 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 0.8, end: 1.0),
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.elasticOut,
-              builder: (context, value, child) {
-                return Transform.scale(
-                  scale: isSelected ? (value * 1.05) : value,
-                  child: child,
-                );
-              },
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: (isSelected ? Colors.green[400] : Colors.grey[300])!,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: isSelected ? Colors.white : Colors.black54,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return ScaleTransition(scale: animation, child: child);
-              },
-              child: Radio<RecoveryMethod>(
-                key: ValueKey<RecoveryMethod>(method),
-                value: method,
-                groupValue: _selected,
-                activeColor: Colors.green[400],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selected = value);
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 }

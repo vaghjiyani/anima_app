@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
+import '../services/auth_service.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 import 'home_page.dart';
@@ -12,38 +14,132 @@ class SigninScreen extends StatefulWidget {
   State<SigninScreen> createState() => _SigninScreenState();
 }
 
-class _SigninScreenState extends State<SigninScreen> {
+class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _obscurePassword = true;
 
-  // Demo credentials (hardcoded)
-  static const String _demoEmail = 'user@example.com';
-  static const String _demoPassword = 'Password123';
+  bool _isLoading = false;
+  bool _showSuccessMessage = false;
+  late AnimationController _successAnimationController;
+  late Animation<double> _successAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Prefill demo credentials for convenience
-    _emailController.text = _demoEmail;
-    _passwordController.text = _demoPassword;
+    _successAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _successAnimation = CurvedAnimation(
+      parent: _successAnimationController,
+      curve: Curves.elasticOut,
+    );
+    
+    _loadRememberedCredentials();
+    
+    // Check if coming from signup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args == 'signup_success') {
+        _showRegistrationSuccess();
+      }
+    });
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberedEmail = prefs.getString('remembered_email');
+    final rememberedPassword = prefs.getString('remembered_password');
+    final isRemembered = prefs.getBool('remember_me') ?? false;
+    
+    if (isRemembered && rememberedEmail != null && rememberedPassword != null) {
+      setState(() {
+        _emailController.text = rememberedEmail;
+        _passwordController.text = rememberedPassword;
+        _rememberMe = true;
+      });
+    }
   }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _successAnimationController.dispose();
     super.dispose();
   }
 
-  void _signIn() {
+  void _showRegistrationSuccess() {
+    setState(() {
+      _showSuccessMessage = true;
+    });
+    _successAnimationController.forward();
+    
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _successAnimationController.reverse().then((_) {
+          if (mounted) {
+            setState(() {
+              _showSuccessMessage = false;
+            });
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _signIn() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
     FocusScope.of(context).unfocus();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
-    );
+    
+    try {
+      await AuthService.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      
+      // Save credentials if remember me is checked
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('remembered_email', _emailController.text.trim());
+        await prefs.setString('remembered_password', _passwordController.text);
+        await prefs.setBool('remember_me', true);
+      } else {
+        await prefs.remove('remembered_email');
+        await prefs.remove('remembered_password');
+        await prefs.setBool('remember_me', false);
+      }
+      
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -173,6 +269,40 @@ class _SigninScreenState extends State<SigninScreen> {
                           height: ResponsiveHelper.isDesktop(context) ? 30 : 20,
                         ),
 
+                        // Success message
+                        if (_showSuccessMessage)
+                          ScaleTransition(
+                            scale: _successAnimation,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.green[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.green[300]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green[600],
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Registration successful! You can now sign in.',
+                                      style: TextStyle(
+                                        color: Colors.green[800],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
                         // Email field
                         _buildTextField(
                           controller: _emailController,
@@ -284,7 +414,7 @@ class _SigninScreenState extends State<SigninScreen> {
                           width: double.infinity,
                           height: ResponsiveHelper.getButtonHeight(context),
                           child: ElevatedButton(
-                            onPressed: _signIn,
+                            onPressed: _isLoading ? null : _signIn,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green[400],
                               foregroundColor: Colors.white,
@@ -294,17 +424,26 @@ class _SigninScreenState extends State<SigninScreen> {
                               elevation: 8,
                               shadowColor: Colors.black.withValues(alpha: 0.3),
                             ),
-                            child: Text(
-                              "Sign In",
-                              style: TextStyle(
-                                fontSize:
-                                    ResponsiveHelper.getResponsiveFontSize(
-                                      context,
-                                      18,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
                                     ),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                                  )
+                                : Text(
+                                    "Sign In",
+                                    style: TextStyle(
+                                      fontSize:
+                                          ResponsiveHelper.getResponsiveFontSize(
+                                            context,
+                                            18,
+                                          ),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
 
@@ -343,45 +482,6 @@ class _SigninScreenState extends State<SigninScreen> {
                               ),
                             ],
                           ),
-                        ),
-
-                        const SizedBox(height: 30),
-
-                        // Or divider
-                        const Center(
-                          child: Text(
-                            "or",
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        // Social login icons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildIconButton(
-                              iconPath: 'assets/icons/facebook.png',
-                              fallbackIcon: Icons.facebook,
-                              onTap: () {},
-                            ),
-                            const SizedBox(width: 20),
-                            _buildIconButton(
-                              iconPath: 'assets/icons/google.png',
-                              fallbackIcon: Icons.g_mobiledata,
-                              onTap: () {},
-                            ),
-                            const SizedBox(width: 20),
-                            _buildIconButton(
-                              iconPath: 'assets/icons/apple.png',
-                              fallbackIcon: Icons.apple,
-                              onTap: () {},
-                            ),
-                          ],
                         ),
 
                         SizedBox(
@@ -478,40 +578,5 @@ class _SigninScreenState extends State<SigninScreen> {
     );
   }
 
-  Widget _buildIconButton({
-    required String iconPath,
-    required IconData fallbackIcon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(child: _buildIcon(iconPath, fallbackIcon)),
-      ),
-    );
-  }
 
-  Widget _buildIcon(String iconPath, IconData fallbackIcon) {
-    return Image.asset(
-      iconPath,
-      width: 24,
-      height: 24,
-      errorBuilder: (context, error, stackTrace) {
-        return Icon(fallbackIcon, size: 24, color: Colors.black54);
-      },
-    );
-  }
 }
