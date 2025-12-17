@@ -41,14 +41,14 @@ class _ProfilePageState extends State<ProfilePage> {
         final user = AuthService.currentUser;
         if (user != null) {
           await user.updateDisplayName(_fullNameController.text);
-          
+
           // Save additional profile data to SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_nickname', _nicknameController.text);
           await prefs.setString('user_phone', _phoneController.text);
           await prefs.setString('user_gender', _selectedGender);
         }
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -99,12 +99,12 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     }
-    
+
     // Load additional profile data
     final nickname = prefs.getString('user_nickname');
     final phone = prefs.getString('user_phone');
     final gender = prefs.getString('user_gender');
-    
+
     if (nickname != null) _nicknameController.text = nickname;
     if (phone != null) _phoneController.text = phone;
     if (gender != null) _selectedGender = gender;
@@ -145,7 +145,12 @@ class _ProfilePageState extends State<ProfilePage> {
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
+          ),
         ),
       ),
       body: Container(
@@ -186,10 +191,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                   : 120,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.9),
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey[800]
+                                    : Colors.white.withOpacity(0.9),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withOpacity(0.2),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -327,31 +336,53 @@ class _ProfilePageState extends State<ProfilePage> {
                       Container(
                         width: double.infinity,
                         padding: EdgeInsets.symmetric(
-                          horizontal: ResponsiveHelper.isDesktop(context) ? 20 : 16,
-                          vertical: ResponsiveHelper.isDesktop(context) ? 16 : 12,
+                          horizontal: ResponsiveHelper.isDesktop(context)
+                              ? 20
+                              : 16,
+                          vertical: ResponsiveHelper.isDesktop(context)
+                              ? 16
+                              : 12,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[800]!.withOpacity(0.5)
+                              : Colors.white.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.black.withOpacity(0.2),
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.2),
                           ),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               Icons.calendar_today,
-                              color: Colors.black54,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white70
+                                  : Colors.black54,
                               size: ResponsiveHelper.getIconSize(context, 24),
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              AuthService.currentUser?.metadata.creationTime != null
+                              AuthService.currentUser?.metadata.creationTime !=
+                                      null
                                   ? '${AuthService.currentUser!.metadata.creationTime!.day}/${AuthService.currentUser!.metadata.creationTime!.month}/${AuthService.currentUser!.metadata.creationTime!.year}'
                                   : 'Unknown',
                               style: TextStyle(
-                                color: Colors.black,
-                                fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(
+                                      context,
+                                      16,
+                                    ),
                               ),
                             ),
                           ],
@@ -405,16 +436,25 @@ class _ProfilePageState extends State<ProfilePage> {
                               : 16,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[800]!.withOpacity(0.5)
+                              : Colors.white.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.black.withOpacity(0.2),
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.2),
                           ),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: _selectedGender,
                             isExpanded: true,
+                            dropdownColor:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[800]
+                                : Colors.white,
                             icon: Icon(
                               Icons.keyboard_arrow_down,
                               color:
@@ -564,9 +604,13 @@ class _ProfileTextField extends StatelessWidget {
               size: ResponsiveHelper.getIconSize(context, 24),
             ),
             filled: true,
-            fillColor: readOnly 
-                ? Colors.grey.withOpacity(0.3)
-                : Colors.white.withOpacity(0.9),
+            fillColor: readOnly
+                ? (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[700]!.withOpacity(0.3)
+                      : Colors.grey.withOpacity(0.3))
+                : (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[800]!.withOpacity(0.5)
+                      : Colors.white.withOpacity(0.9)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(

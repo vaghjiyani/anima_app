@@ -12,6 +12,10 @@ import 'manga_page.dart';
 import 'magazines_page.dart';
 import 'search_page.dart';
 import 'favorites_page.dart';
+import '../services/jikan_api_service.dart';
+import '../models/anime.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'anime_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,6 +29,19 @@ class _HomePageState extends State<HomePage> {
   File? _profileImageFile;
   static const String _profileImagePathKey = 'profile_image_path';
   int _selectedIndex = 0;
+
+  // API data
+  List<Anime> _trendingAnime = [];
+  List<Anime> _seasonalAnime = [];
+  List<Anime> _topAnime = [];
+  List<Anime> _searchResults = [];
+
+  bool _isLoadingTrending = true;
+  bool _isLoadingSeasonal = true;
+  bool _isLoadingTop = true;
+  bool _isSearching = false;
+
+  String? _errorMessage;
 
   void _onBottomNavTapped(int index) {
     if (index == 1) {
@@ -48,6 +65,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -56,6 +74,131 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadSavedProfileImage();
+    _loadAnimeData();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+    }
+  }
+
+  Future<void> _loadAnimeData() async {
+    await Future.wait([
+      _loadTrendingAnime(),
+      _loadSeasonalAnime(),
+      _loadTopAnime(),
+    ]);
+  }
+
+  Future<void> _loadTrendingAnime() async {
+    try {
+      setState(() {
+        _isLoadingTrending = true;
+        _errorMessage = null;
+      });
+
+      final anime = await JikanApiService.getSeasonalAnime(page: 1);
+
+      if (mounted) {
+        setState(() {
+          _trendingAnime = anime.take(10).toList();
+          _isLoadingTrending = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load trending anime';
+          _isLoadingTrending = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadSeasonalAnime() async {
+    try {
+      setState(() {
+        _isLoadingSeasonal = true;
+      });
+
+      final anime = await JikanApiService.getSeasonalAnime(page: 1);
+
+      if (mounted) {
+        setState(() {
+          _seasonalAnime = anime.take(10).toList();
+          _isLoadingSeasonal = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingSeasonal = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadTopAnime() async {
+    try {
+      setState(() {
+        _isLoadingTop = true;
+      });
+
+      final anime = await JikanApiService.getTopAnime(page: 1, limit: 10);
+
+      if (mounted) {
+        setState(() {
+          _topAnime = anime;
+          _isLoadingTop = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingTop = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _performSearch(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _isSearching = true;
+      });
+
+      final results = await JikanApiService.searchAnime(
+        query: query,
+        limit: 20,
+      );
+
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadSavedProfileImage() async {
@@ -73,34 +216,19 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> bannerImages = const [
-      'assets/images/download.jpeg',
-      'assets/images/download_1.jpeg',
-      'assets/images/download_2.jpeg',
-    ];
+    // Use seasonal anime for featured banners
+    final List<Anime> featuredAnime = _seasonalAnime.take(3).toList();
 
     final List<String> categories = const [
       'Action',
       'Romance',
       'Fantasy',
       'Comedy',
-      'Sci‑Fi'
-          'Adventure',
+      'Sci-Fi',
+      'Adventure',
       'Drama',
       'Slice of Life',
     ];
-
-    final List<_AnimeCardData> trending = const [
-      _AnimeCardData('Demon Slayer', 'assets/images/download_1.jpeg'),
-      _AnimeCardData('One Piece', 'assets/images/download_2.jpeg'),
-      _AnimeCardData('Jujutsu Kaisen', 'assets/images/download.jpeg'),
-      _AnimeCardData('Your Name', 'assets/images/download_2.jpeg'),
-    ];
-
-    final String query = _searchController.text.trim().toLowerCase();
-    final List<_AnimeCardData> filteredTrending = query.isEmpty
-        ? trending
-        : trending.where((a) => a.title.toLowerCase().contains(query)).toList();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -192,24 +320,55 @@ class _HomePageState extends State<HomePage> {
                       height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
                     ),
                     _SectionHeader(title: 'Featured'),
-                    SizedBox(
-                      height: ResponsiveHelper.getBannerHeight(context),
-                      child: ListView.builder(
-                        padding: ResponsiveHelper.getResponsivePadding(context),
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: bannerImages.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right: index < bannerImages.length - 1 ? 12 : 0,
+                    _isLoadingSeasonal
+                        ? SizedBox(
+                            height: ResponsiveHelper.getBannerHeight(context),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
-                            child: _BannerCard(imagePath: bannerImages[index]),
-                          );
-                        },
-                      ),
-                    ),
+                          )
+                        : featuredAnime.isEmpty
+                        ? SizedBox(
+                            height: 100,
+                            child: Center(
+                              child: Text(
+                                'No featured anime available',
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                              ),
+                            ),
+                          )
+                        : SizedBox(
+                            height: ResponsiveHelper.getBannerHeight(context),
+                            child: ListView.builder(
+                              padding: ResponsiveHelper.getResponsivePadding(
+                                context,
+                              ),
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: featuredAnime.length,
+                              itemBuilder: (context, index) {
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right: index < featuredAnime.length - 1
+                                        ? 12
+                                        : 0,
+                                  ),
+                                  child: _BannerCard(
+                                    anime: featuredAnime[index],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
                     ),
@@ -269,28 +428,58 @@ class _HomePageState extends State<HomePage> {
                       height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
                     ),
                     _SectionHeader(title: 'Trending Now'),
-                    SizedBox(
-                      height: ResponsiveHelper.getAnimeCardHeight(context),
-                      child: ListView.builder(
-                        padding: ResponsiveHelper.getResponsivePadding(context),
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: trending.length,
-                        itemBuilder: (context, index) {
-                          final item = trending[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right: index < trending.length - 1 ? 12 : 0,
+                    _isLoadingTrending
+                        ? SizedBox(
+                            height: ResponsiveHelper.getAnimeCardHeight(
+                              context,
                             ),
-                            child: _AnimeCard(
-                              title: item.title,
-                              imagePath: item.imagePath,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          )
+                        : _trendingAnime.isEmpty
+                        ? SizedBox(
+                            height: 100,
+                            child: Center(
+                              child: Text(
+                                'No trending anime available',
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                              ),
+                            ),
+                          )
+                        : SizedBox(
+                            height: ResponsiveHelper.getAnimeCardHeight(
+                              context,
+                            ),
+                            child: ListView.builder(
+                              padding: ResponsiveHelper.getResponsivePadding(
+                                context,
+                              ),
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: _trendingAnime.length,
+                              itemBuilder: (context, index) {
+                                final anime = _trendingAnime[index];
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right: index < _trendingAnime.length - 1
+                                        ? 12
+                                        : 0,
+                                  ),
+                                  child: _AnimeCard(anime: anime),
+                                );
+                              },
+                            ),
+                          ),
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 20 : 12,
                     ),
@@ -308,28 +497,42 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                    SizedBox(
-                      height: ResponsiveHelper.getAnimeCardHeight(context),
-                      child: ListView.builder(
-                        padding: ResponsiveHelper.getResponsivePadding(context),
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: trending.length,
-                        itemBuilder: (context, index) {
-                          final item = trending[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right: index < trending.length - 1 ? 12 : 0,
+                    _isLoadingTop
+                        ? SizedBox(
+                            height: ResponsiveHelper.getAnimeCardHeight(
+                              context,
                             ),
-                            child: _AnimeCard(
-                              title: item.title,
-                              imagePath: item.imagePath,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          )
+                        : SizedBox(
+                            height: ResponsiveHelper.getAnimeCardHeight(
+                              context,
+                            ),
+                            child: ListView.builder(
+                              padding: ResponsiveHelper.getResponsivePadding(
+                                context,
+                              ),
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: _topAnime.length,
+                              itemBuilder: (context, index) {
+                                final anime = _topAnime[index];
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right: index < _topAnime.length - 1
+                                        ? 12
+                                        : 0,
+                                  ),
+                                  child: _AnimeCard(anime: anime),
+                                );
+                              },
+                            ),
+                          ),
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 20 : 12,
                     ),
@@ -345,28 +548,42 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                    SizedBox(
-                      height: ResponsiveHelper.getAnimeCardHeight(context),
-                      child: ListView.builder(
-                        padding: ResponsiveHelper.getResponsivePadding(context),
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: trending.length,
-                        itemBuilder: (context, index) {
-                          final item = trending[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right: index < trending.length - 1 ? 12 : 0,
+                    _isLoadingSeasonal
+                        ? SizedBox(
+                            height: ResponsiveHelper.getAnimeCardHeight(
+                              context,
                             ),
-                            child: _AnimeCard(
-                              title: item.title,
-                              imagePath: item.imagePath,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          )
+                        : SizedBox(
+                            height: ResponsiveHelper.getAnimeCardHeight(
+                              context,
+                            ),
+                            child: ListView.builder(
+                              padding: ResponsiveHelper.getResponsivePadding(
+                                context,
+                              ),
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: _seasonalAnime.length,
+                              itemBuilder: (context, index) {
+                                final anime = _seasonalAnime[index];
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right: index < _seasonalAnime.length - 1
+                                        ? 12
+                                        : 0,
+                                  ),
+                                  child: _AnimeCard(anime: anime),
+                                );
+                              },
+                            ),
+                          ),
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 20 : 12,
                     ),
@@ -384,33 +601,48 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                    SizedBox(
-                      height: ResponsiveHelper.getAnimeCardHeight(context),
-                      child: ListView.builder(
-                        padding: ResponsiveHelper.getResponsivePadding(context),
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: trending.length,
-                        itemBuilder: (context, index) {
-                          final item = trending[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right: index < trending.length - 1 ? 12 : 0,
+                    _isLoadingTop
+                        ? SizedBox(
+                            height: ResponsiveHelper.getAnimeCardHeight(
+                              context,
                             ),
-                            child: _AnimeCard(
-                              title: item.title,
-                              imagePath: item.imagePath,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          )
+                        : SizedBox(
+                            height: ResponsiveHelper.getAnimeCardHeight(
+                              context,
+                            ),
+                            child: ListView.builder(
+                              padding: ResponsiveHelper.getResponsivePadding(
+                                context,
+                              ),
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: _topAnime.take(5).length,
+                              itemBuilder: (context, index) {
+                                final anime = _topAnime[index];
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right: index < 4 ? 12 : 0,
+                                  ),
+                                  child: _AnimeCard(anime: anime),
+                                );
+                              },
+                            ),
+                          ),
                   ] else if (_selectedIndex == 1) ...[
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
                     ),
-                    _SearchBar(controller: _searchController),
+                    _SearchBar(
+                      controller: _searchController,
+                      onSubmitted: _performSearch,
+                    ),
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
                     ),
@@ -418,13 +650,22 @@ class _HomePageState extends State<HomePage> {
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 12 : 8,
                     ),
-                    if (filteredTrending.isEmpty)
+                    if (_isSearching)
+                      Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      )
+                    else if (_searchResults.isEmpty)
                       Padding(
                         padding: ResponsiveHelper.getResponsivePadding(context),
                         child: Text(
                           'No matches found',
                           style: TextStyle(
-                            color: Colors.black54,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white70
+                                : Colors.black54,
                             fontSize: ResponsiveHelper.getResponsiveFontSize(
                               context,
                               16,
@@ -437,19 +678,16 @@ class _HomePageState extends State<HomePage> {
                         padding: ResponsiveHelper.getResponsivePadding(context),
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
-                        itemCount: filteredTrending.length,
+                        itemCount: _searchResults.length,
                         itemBuilder: (context, index) {
-                          final item = filteredTrending[index];
+                          final anime = _searchResults[index];
                           return Padding(
                             padding: EdgeInsets.only(
-                              bottom: index < filteredTrending.length - 1
+                              bottom: index < _searchResults.length - 1
                                   ? 12
                                   : 0,
                             ),
-                            child: _SearchResultTile(
-                              title: item.title,
-                              imagePath: item.imagePath,
-                            ),
+                            child: _SearchResultTile(anime: anime),
                           );
                         },
                       ),
@@ -483,9 +721,13 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTapped,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF43a047),
-        unselectedItemColor: Colors.black54,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[900]
+            : Colors.white,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white54
+            : Colors.black54,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -557,9 +799,9 @@ class _SeeAllButton extends StatelessWidget {
 }
 
 class _BannerCard extends StatelessWidget {
-  const _BannerCard({required this.imagePath});
+  const _BannerCard({required this.anime});
 
-  final String imagePath;
+  final Anime anime;
 
   @override
   Widget build(BuildContext context) {
@@ -574,25 +816,54 @@ class _BannerCard extends StatelessWidget {
         ? (availableWidth * 0.85).clamp(250.0, 400.0)
         : (availableWidth * 0.9).clamp(200.0, 300.0);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: SizedBox(
-          width: cardWidth,
-          child: Image.asset(
-            imagePath,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-              color: Colors.white,
-              child: Center(
-                child: Icon(
-                  Icons.image_not_supported,
-                  color: Colors.black54,
-                  size: ResponsiveHelper.getIconSize(context, 24),
-                ),
-              ),
-            ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AnimeDetailPage(anime: anime),
+          ),
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: SizedBox(
+            width: cardWidth,
+            child: anime.imageUrl != null
+                ? CachedNetworkImage(
+                    imageUrl: anime.imageUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[300],
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[800],
+                      child: Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white54,
+                          size: ResponsiveHelper.getIconSize(context, 24),
+                        ),
+                      ),
+                    ),
+                  )
+                : Container(
+                    color: Colors.grey[800],
+                    child: Center(
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: Colors.white54,
+                        size: ResponsiveHelper.getIconSize(context, 24),
+                      ),
+                    ),
+                  ),
           ),
         ),
       ),
@@ -638,114 +909,171 @@ class _CategoryChip extends StatelessWidget {
 }
 
 class _AnimeCard extends StatelessWidget {
-  const _AnimeCard({required this.title, required this.imagePath});
+  const _AnimeCard({required this.anime});
 
-  final String title;
-  final String imagePath;
+  final Anime anime;
 
   @override
   Widget build(BuildContext context) {
     final cardWidth = ResponsiveHelper.getCardWidth(context, itemsPerRow: 1);
 
-    return SizedBox(
-      width: cardWidth,
-      child: IntrinsicHeight(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: AspectRatio(
-                aspectRatio: 3 / 4,
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: Colors.white,
-                    child: Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: Colors.black54,
-                        size: ResponsiveHelper.getIconSize(context, 24),
-                      ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AnimeDetailPage(anime: anime),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: cardWidth,
+        child: IntrinsicHeight(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: AspectRatio(
+                  aspectRatio: 3 / 4,
+                  child: anime.imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: anime.imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.grey[200],
+                            child: Center(
+                              child: Icon(
+                                Icons.image_not_supported,
+                                color: Colors.grey[400],
+                                size: ResponsiveHelper.getIconSize(context, 24),
+                              ),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.grey[200],
+                          child: Center(
+                            child: Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey[400],
+                              size: ResponsiveHelper.getIconSize(context, 24),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.isDesktop(context) ? 6 : 4),
+              Expanded(
+                child: Text(
+                  anime.displayTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                    fontWeight: FontWeight.w600,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      12,
                     ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(height: ResponsiveHelper.isDesktop(context) ? 6 : 4),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-                  fontWeight: FontWeight.w600,
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Removed unused _GradientSection widget
-
-class _AnimeCardData {
-  const _AnimeCardData(this.title, this.imagePath);
-  final String title;
-  final String imagePath;
-}
+// Removed unused _GradientSection widget and _AnimeCardData class
 
 class _SearchResultTile extends StatelessWidget {
-  const _SearchResultTile({required this.title, required this.imagePath});
+  const _SearchResultTile({required this.anime});
 
-  final String title;
-  final String imagePath;
+  final Anime anime;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.1)),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.1),
+        ),
       ),
       child: ListTile(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AnimeDetailPage(anime: anime),
+            ),
+          );
+        },
         contentPadding: EdgeInsets.symmetric(
           horizontal: ResponsiveHelper.isDesktop(context) ? 16 : 12,
           vertical: ResponsiveHelper.isDesktop(context) ? 8 : 6,
         ),
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.asset(
-            imagePath,
-            width: ResponsiveHelper.isDesktop(context) ? 52 : 44,
-            height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-              width: ResponsiveHelper.isDesktop(context) ? 52 : 44,
-              height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
-              color: Colors.white,
-              child: Icon(
-                Icons.image_not_supported,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white70
-                    : Colors.black54,
-                size: ResponsiveHelper.getIconSize(context, 20),
-              ),
-            ),
-          ),
+          child: anime.imageUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: anime.imageUrl!,
+                  width: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+                  height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    width: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+                    height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+                    color: Colors.grey[300],
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+                    height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+                    color: Colors.grey[200],
+                    child: Icon(
+                      Icons.image_not_supported,
+                      color: Colors.grey[400],
+                      size: ResponsiveHelper.getIconSize(context, 20),
+                    ),
+                  ),
+                )
+              : Container(
+                  width: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+                  height: ResponsiveHelper.isDesktop(context) ? 52 : 44,
+                  color: Colors.grey[200],
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: Colors.grey[400],
+                    size: ResponsiveHelper.getIconSize(context, 20),
+                  ),
+                ),
         ),
         title: Text(
-          title,
+          anime.displayTitle,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -756,15 +1084,27 @@ class _SearchResultTile extends StatelessWidget {
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
           ),
         ),
+        subtitle: anime.score != null
+            ? Text(
+                '⭐ ${anime.scoreString}',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.black54,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
+                ),
+              )
+            : null,
       ),
     );
   }
 }
 
 class _SearchBar extends StatefulWidget {
-  const _SearchBar({required this.controller});
+  const _SearchBar({required this.controller, this.onSubmitted});
 
   final TextEditingController controller;
+  final Function(String)? onSubmitted;
 
   @override
   State<_SearchBar> createState() => _SearchBarState();
@@ -773,11 +1113,9 @@ class _SearchBar extends StatefulWidget {
 class _SearchBarState extends State<_SearchBar>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _shadowAnimation;
   late Animation<Color?> _colorAnimation;
-  late Animation<double> _borderRadiusAnimation;
   bool _isFocused = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
@@ -786,29 +1124,26 @@ class _SearchBarState extends State<_SearchBar>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+  }
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-
-    _shadowAnimation = Tween<double>(begin: 0.1, end: 0.2).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-
-    _colorAnimation =
-        ColorTween(
-          begin: Colors.white.withOpacity(0.9),
-          end: Colors.white,
-        ).animate(
-          CurvedAnimation(
-            parent: _animationController,
-            curve: Curves.easeInOut,
-          ),
-        );
-
-    _borderRadiusAnimation = Tween<double>(begin: 25.0, end: 20.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      // Use theme primary color for search box background
+      final primaryColor = Theme.of(context).colorScheme.primary;
+      _colorAnimation =
+          ColorTween(
+            begin: primaryColor.withOpacity(0.9),
+            end: primaryColor,
+          ).animate(
+            CurvedAnimation(
+              parent: _animationController,
+              curve: Curves.easeInOut,
+            ),
+          );
+      _isInitialized = true;
+    }
   }
 
   @override
@@ -834,82 +1169,77 @@ class _SearchBarState extends State<_SearchBar>
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Padding(
-            padding: ResponsiveHelper.getResponsivePadding(context),
-            child: Container(
-              height: ResponsiveHelper.getButtonHeight(context),
-              decoration: BoxDecoration(
-                color: _colorAnimation.value,
-                borderRadius: BorderRadius.circular(
-                  _borderRadiusAnimation.value,
+        return Padding(
+          padding: ResponsiveHelper.getResponsivePadding(context),
+          child: Container(
+            height: ResponsiveHelper.isDesktop(context) ? 56 : 52,
+            decoration: BoxDecoration(
+              color: _colorAnimation.value,
+              borderRadius: BorderRadius.circular(16),
+              border: _isFocused
+                  ? Border.all(color: Colors.white, width: 2)
+                  : Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: _isFocused
+                      ? Colors.black.withOpacity(0.3)
+                      : Colors.black.withOpacity(0.15),
+                  blurRadius: _isFocused ? 12 : 6,
+                  offset: Offset(0, _isFocused ? 4 : 2),
+                  spreadRadius: _isFocused ? 1 : 0,
                 ),
-                border: _isFocused
-                    ? Border.all(color: const Color(0xFF66bb6a), width: 2)
-                    : null,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(_shadowAnimation.value),
-                    blurRadius: _isFocused ? 16 : 8,
-                    offset: Offset(0, _isFocused ? 6 : 2),
-                  ),
-                ],
+              ],
+            ),
+            child: TextField(
+              controller: widget.controller,
+              onTap: () => _onFocusChange(true),
+              onSubmitted: (value) {
+                _onFocusChange(false);
+                widget.onSubmitted?.call(value);
+              },
+              onEditingComplete: () => _onFocusChange(false),
+              onChanged: (_) {
+                setState(() {});
+              },
+              style: const TextStyle(
+                fontSize: 15,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
               ),
-              child: TextField(
-                controller: widget.controller,
-                onTap: () => _onFocusChange(true),
-                onSubmitted: (_) => _onFocusChange(false),
-                onEditingComplete: () => _onFocusChange(false),
-                onChanged: (_) {
-                  // let parent listeners update results via setState
-                  setState(() {});
-                },
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
+              decoration: InputDecoration(
+                hintText: 'Search for anime, manga...',
+                hintStyle: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
                 ),
-                decoration: InputDecoration(
-                  hintText: 'Search anime...',
-                  hintStyle: TextStyle(
-                    color: Colors.black54,
-                    fontSize: ResponsiveHelper.getResponsiveFontSize(
-                      context,
-                      16,
-                    ),
-                  ),
-                  prefixIcon: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      _isFocused ? Icons.search : Icons.search_outlined,
-                      key: ValueKey(_isFocused),
-                      color: _isFocused
-                          ? const Color(0xFF66bb6a)
-                          : Colors.black54,
-                      size: ResponsiveHelper.getIconSize(context, 24),
-                    ),
-                  ),
-                  suffixIcon: widget.controller.text.isNotEmpty
-                      ? AnimatedOpacity(
-                          opacity: widget.controller.text.isNotEmpty
-                              ? 1.0
-                              : 0.0,
-                          duration: const Duration(milliseconds: 200),
-                          child: IconButton(
-                            icon: const Icon(Icons.clear),
-                            color: Colors.black54,
-                            onPressed: () {
-                              widget.controller.clear();
-                              setState(() {});
-                            },
-                          ),
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: ResponsiveHelper.isDesktop(context) ? 24 : 20,
-                    vertical: ResponsiveHelper.isDesktop(context) ? 18 : 15,
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 4, right: 8),
+                  child: Icon(
+                    _isFocused ? Icons.search : Icons.search_outlined,
+                    color: Colors.white,
+                    size: 22,
                   ),
                 ),
+                suffixIcon: widget.controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 20),
+                        color: Colors.white,
+                        onPressed: () {
+                          widget.controller.clear();
+                          setState(() {});
+                        },
+                        tooltip: 'Clear',
+                      )
+                    : null,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: ResponsiveHelper.isDesktop(context) ? 16 : 14,
+                ),
+                isDense: true,
               ),
             ),
           ),
