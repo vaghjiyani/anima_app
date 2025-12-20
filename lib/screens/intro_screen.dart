@@ -12,7 +12,7 @@ class IntroScreen extends StatefulWidget {
 class _IntroScreenState extends State<IntroScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  late Timer _timer;
+  Timer? _timer;
 
   final List<Map<String, String>> _introData = [
     {
@@ -42,13 +42,15 @@ class _IntroScreenState extends State<IntroScreen> {
     super.initState();
     // Start auto slide after a short delay to ensure PageController is ready
     Future.delayed(const Duration(milliseconds: 500), () {
-      _startAutoSlide();
+      if (mounted) {
+        _startAutoSlide();
+      }
     });
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     _pageController.dispose();
     super.dispose();
   }

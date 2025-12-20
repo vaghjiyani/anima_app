@@ -24,6 +24,27 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     super.initState();
     _anime = widget.anime;
     _loadFullDetails();
+    _loadEpisodes();
+  }
+
+  List<Map<String, dynamic>> _episodes = [];
+  bool _isLoadingEpisodes = false;
+
+  Future<void> _loadEpisodes() async {
+    setState(() => _isLoadingEpisodes = true);
+    try {
+      final episodes = await JikanApiService.getAnimeEpisodes(_anime.id);
+      if (mounted) {
+        setState(() {
+          _episodes = episodes;
+          _isLoadingEpisodes = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingEpisodes = false);
+      }
+    }
   }
 
   Future<void> _loadFullDetails() async {
@@ -143,6 +164,13 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                           // Additional Info
                           _buildAdditionalInfo(isDark),
                           const SizedBox(height: 20),
+
+                          // Episodes Section
+                          if (_anime.episodes != null &&
+                              _anime.episodes! > 0) ...[
+                            _buildEpisodesSection(isDark),
+                            const SizedBox(height: 20),
+                          ],
                         ],
                       ),
                     ),
@@ -565,6 +593,135 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
             }).toList(),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildEpisodesSection(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Episodes (${_anime.episodes})',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        if (_isLoadingEpisodes)
+          Container(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          )
+        else if (_episodes.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.1),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                'No episode information available',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          )
+        else
+          Container(
+            constraints: const BoxConstraints(maxHeight: 400),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.1),
+              ),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.all(8),
+              itemCount: _episodes.length,
+              separatorBuilder: (context, index) => Divider(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.1),
+                height: 1,
+              ),
+              itemBuilder: (context, index) {
+                final episode = _episodes[index];
+                final episodeNumber = episode['mal_id'] ?? index + 1;
+                final title = episode['title'] ?? 'Episode $episodeNumber';
+                final aired = episode['aired'] != null
+                    ? DateTime.tryParse(episode['aired'])
+                    : null;
+
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$episodeNumber',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    title,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: aired != null
+                      ? Text(
+                          '${aired.day}/${aired.month}/${aired.year}',
+                          style: TextStyle(
+                            color: isDark ? Colors.white60 : Colors.black45,
+                            fontSize: 12,
+                          ),
+                        )
+                      : null,
+                );
+              },
+            ),
+          ),
       ],
     );
   }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../screens/top_anime_page.dart';
 import '../screens/manga_page.dart';
-import '../screens/magazines_page.dart';
 import '../screens/profile_page.dart';
+import '../screens/search_page.dart';
+import '../screens/seasonal_anime_page.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
 import '../screens/signin_screen.dart';
@@ -34,18 +35,18 @@ class _AppSidebarState extends State<AppSidebar>
     super.dispose();
   }
 
-  Animation<double> _fade(int index, {int total = 6}) {
-    final start = 0.15 + (index * (0.6 / total));
-    final end = start + 0.25;
+  Animation<double> _fade(int index, {int total = 8}) {
+    final start = 0.15 + (index * (0.5 / total));
+    final end = (start + 0.2).clamp(0.0, 1.0);
     return CurvedAnimation(
       parent: _controller,
       curve: Interval(start, end, curve: Curves.easeOut),
     );
   }
 
-  Animation<Offset> _slide(int index, {int total = 6}) {
-    final start = 0.1 + (index * (0.6 / total));
-    final end = start + 0.35;
+  Animation<Offset> _slide(int index, {int total = 8}) {
+    final start = 0.1 + (index * (0.5 / total));
+    final end = (start + 0.25).clamp(0.0, 1.0);
     return Tween<Offset>(
       begin: const Offset(-0.2, 0),
       end: Offset.zero,
@@ -87,11 +88,45 @@ class _AppSidebarState extends State<AppSidebar>
                   ),
                 ),
               ),
+
+              // Browse Section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Text(
+                  'BROWSE',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.black54,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
               FadeTransition(
                 opacity: _fade(1),
                 child: SlideTransition(
                   position: _slide(1),
+                  child: _NavTile(
+                    icon: Icons.search,
+                    label: 'Search',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SearchPage()),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              FadeTransition(
+                opacity: _fade(2),
+                child: SlideTransition(
+                  position: _slide(2),
                   child: _NavTile(
                     icon: Icons.trending_up,
                     label: 'Top Anime',
@@ -107,9 +142,29 @@ class _AppSidebarState extends State<AppSidebar>
               ),
               const SizedBox(height: 8),
               FadeTransition(
-                opacity: _fade(2),
+                opacity: _fade(3),
                 child: SlideTransition(
-                  position: _slide(2),
+                  position: _slide(3),
+                  child: _NavTile(
+                    icon: Icons.calendar_today,
+                    label: 'Seasonal Anime',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SeasonalAnimePage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              FadeTransition(
+                opacity: _fade(4),
+                child: SlideTransition(
+                  position: _slide(4),
                   child: _NavTile(
                     icon: Icons.book_outlined,
                     label: 'Manga',
@@ -123,32 +178,58 @@ class _AppSidebarState extends State<AppSidebar>
                   ),
                 ),
               ),
+
+              // Library Section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                child: Text(
+                  'LIBRARY',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.black54,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
               FadeTransition(
-                opacity: _fade(3),
+                opacity: _fade(5),
                 child: SlideTransition(
-                  position: _slide(3),
+                  position: _slide(5),
                   child: _NavTile(
-                    icon: Icons.menu_book_outlined,
-                    label: 'Magazines',
+                    icon: Icons.favorite,
+                    label: 'Favorites',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MagazinesPage(),
-                        ),
-                      );
+                      // Favorites page will be implemented
                     },
                   ),
                 ),
               ),
-              const Divider(height: 1),
+
+              // Settings Section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                child: Text(
+                  'SETTINGS',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.black54,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
               FadeTransition(
-                opacity: _fade(4),
+                opacity: _fade(6),
                 child: SlideTransition(
-                  position: _slide(4),
+                  position: _slide(6),
                   child: _NavTile(
                     icon: Icons.person_outline,
                     label: 'Profile',
@@ -164,9 +245,9 @@ class _AppSidebarState extends State<AppSidebar>
               ),
               const SizedBox(height: 8),
               FadeTransition(
-                opacity: _fade(5),
+                opacity: _fade(7),
                 child: SlideTransition(
-                  position: _slide(5),
+                  position: _slide(7),
                   child: _NavTile(
                     icon: Icons.dark_mode,
                     label: 'Theme Settings',
@@ -193,7 +274,9 @@ class _AppSidebarState extends State<AppSidebar>
                       await AuthService.signOut();
                       if (context.mounted) {
                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const SigninScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const SigninScreen(),
+                          ),
                           (route) => false,
                         );
                       }

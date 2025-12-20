@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/anime.dart';
 
@@ -25,18 +26,24 @@ class JikanApiService {
     await _respectRateLimit();
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/top/anime?page=$page&limit=$limit'),
-      );
+      final url = '$_baseUrl/top/anime?page=$page&limit=$limit';
+      debugPrint('📡 API Request: $url');
+
+      final response = await http.get(Uri.parse(url));
+
+      debugPrint('📥 API Response Status: ${response.statusCode}');
+      debugPrint('📥 API Response Body Length: ${response.body.length}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> animeList = data['data'] ?? [];
+        debugPrint('📊 Parsed ${animeList.length} anime from API');
         return animeList.map((json) => Anime.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load top anime: ${response.statusCode}');
       }
     } catch (e) {
+      debugPrint('💥 Exception in getTopAnime: $e');
       throw Exception('Error fetching top anime: $e');
     }
   }
@@ -116,6 +123,27 @@ class JikanApiService {
     }
   }
 
+  // Get top manga
+  static Future<List<Anime>> getTopManga({int page = 1, int limit = 25}) async {
+    await _respectRateLimit();
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/top/manga?page=$page&limit=$limit'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> mangaList = data['data'] ?? [];
+        return mangaList.map((json) => Anime.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load top manga: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching top manga: $e');
+    }
+  }
+
   // Get anime by ID
   static Future<Anime> getAnimeById(int id) async {
     await _respectRateLimit();
@@ -131,6 +159,29 @@ class JikanApiService {
       }
     } catch (e) {
       throw Exception('Error fetching anime details: $e');
+    }
+  }
+
+  // Get anime episodes
+  static Future<List<Map<String, dynamic>>> getAnimeEpisodes(
+    int animeId,
+  ) async {
+    await _respectRateLimit();
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/anime/$animeId/episodes'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> episodesList = data['data'] ?? [];
+        return episodesList.cast<Map<String, dynamic>>();
+      } else {
+        throw Exception('Failed to load episodes: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching episodes: $e');
     }
   }
 

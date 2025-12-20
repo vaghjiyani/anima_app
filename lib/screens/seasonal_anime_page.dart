@@ -8,46 +8,59 @@ import '../utils/responsive_helper.dart';
 import '../widgets/custom_app_bar.dart';
 import 'anime_detail_page.dart';
 
-class MangaPage extends StatefulWidget {
-  const MangaPage({super.key});
+class SeasonalAnimePage extends StatefulWidget {
+  const SeasonalAnimePage({super.key});
 
   @override
-  State<MangaPage> createState() => _MangaPageState();
+  State<SeasonalAnimePage> createState() => _SeasonalAnimePageState();
 }
 
-class _MangaPageState extends State<MangaPage> {
-  List<Anime> _topManga = [];
+class _SeasonalAnimePageState extends State<SeasonalAnimePage> {
+  List<Anime> _seasonalAnime = [];
   bool _isLoading = true;
   String? _errorMessage;
+
+  // Current season info
+  String _currentSeason = '';
+  int _currentYear = DateTime.now().year;
 
   @override
   void initState() {
     super.initState();
-    _loadTopManga();
+    _currentSeason = _getCurrentSeason();
+    _loadSeasonalAnime();
   }
 
-  Future<void> _loadTopManga() async {
+  String _getCurrentSeason() {
+    final month = DateTime.now().month;
+    if (month >= 1 && month <= 3) return 'Winter';
+    if (month >= 4 && month <= 6) return 'Spring';
+    if (month >= 7 && month <= 9) return 'Summer';
+    return 'Fall';
+  }
+
+  Future<void> _loadSeasonalAnime() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      debugPrint('🔄 Loading top manga...');
-      final manga = await JikanApiService.getTopManga(page: 1, limit: 25);
-      debugPrint('✅ Loaded ${manga.length} manga');
+      debugPrint('🔄 Loading seasonal anime...');
+      final anime = await JikanApiService.getSeasonalAnime(page: 1);
+      debugPrint('✅ Loaded ${anime.length} seasonal anime');
       if (mounted) {
         setState(() {
-          _topManga = manga;
+          _seasonalAnime = anime;
           _isLoading = false;
         });
       }
     } catch (e, stackTrace) {
-      debugPrint('❌ Error loading manga: $e');
+      debugPrint('❌ Error loading seasonal anime: $e');
       debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to load manga\n\nError: $e';
+          _errorMessage = 'Failed to load seasonal anime\n\nError: $e';
           _isLoading = false;
         });
       }
@@ -59,12 +72,85 @@ class _MangaPageState extends State<MangaPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GradientScaffold(
-      appBarTitle: 'Top Manga',
+      appBarTitle: 'Seasonal Anime',
       body: Container(
         decoration: AppColors.themedPrimaryGradient(context),
-        child: SafeArea(child: _buildContent(isDark)),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Season Header
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(_getSeasonIcon(), color: Colors.white, size: 32),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$_currentSeason $_currentYear',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${_seasonalAnime.length} Anime',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Expanded(child: _buildContent(isDark)),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  IconData _getSeasonIcon() {
+    switch (_currentSeason.toLowerCase()) {
+      case 'winter':
+        return Icons.ac_unit;
+      case 'spring':
+        return Icons.local_florist;
+      case 'summer':
+        return Icons.wb_sunny;
+      case 'fall':
+        return Icons.eco;
+      default:
+        return Icons.calendar_today;
+    }
   }
 
   Widget _buildContent(bool isDark) {
@@ -96,7 +182,7 @@ class _MangaPageState extends State<MangaPage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _loadTopManga,
+              onPressed: _loadSeasonalAnime,
               child: const Text('Retry'),
             ),
           ],
@@ -104,10 +190,10 @@ class _MangaPageState extends State<MangaPage> {
       );
     }
 
-    if (_topManga.isEmpty) {
+    if (_seasonalAnime.isEmpty) {
       return Center(
         child: Text(
-          'No manga found',
+          'No seasonal anime found',
           style: TextStyle(
             fontSize: 16,
             color: isDark ? Colors.white70 : Colors.black54,
@@ -132,20 +218,20 @@ class _MangaPageState extends State<MangaPage> {
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
         ),
-        itemCount: _topManga.length,
+        itemCount: _seasonalAnime.length,
         itemBuilder: (context, index) {
-          return _buildMangaCard(_topManga[index], index + 1, isDark);
+          return _buildAnimeCard(_seasonalAnime[index], isDark);
         },
       ),
     );
   }
 
-  Widget _buildMangaCard(Anime manga, int rank, bool isDark) {
+  Widget _buildAnimeCard(Anime anime, bool isDark) {
     return InkWell(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => AnimeDetailPage(anime: manga)),
+          MaterialPageRoute(builder: (_) => AnimeDetailPage(anime: anime)),
         );
       },
       borderRadius: BorderRadius.circular(12),
@@ -164,38 +250,27 @@ class _MangaPageState extends State<MangaPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Poster with Rank Badge
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    topRight: Radius.circular(12),
-                  ),
-                  child: manga.imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: manga.imageUrl!,
-                          width: double.infinity,
-                          height: 200,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[300],
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+            // Poster
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
+                ),
+                child: anime.imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: anime.imageUrl!,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[300],
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
-                          errorWidget: (context, url, error) => Container(
-                            color: Colors.grey[800],
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              color: Colors.white54,
-                              size: 40,
-                            ),
-                          ),
-                        )
-                      : Container(
+                        ),
+                        errorWidget: (context, url, error) => Container(
                           color: Colors.grey[800],
                           child: const Icon(
                             Icons.image_not_supported,
@@ -203,63 +278,16 @@ class _MangaPageState extends State<MangaPage> {
                             size: 40,
                           ),
                         ),
-                ),
-                // Rank Badge
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: rank <= 3
-                            ? [Colors.amber, Colors.amber.shade700]
-                            : [
-                                Theme.of(context).colorScheme.primary,
-                                Theme.of(
-                                  context,
-                                ).colorScheme.primary.withOpacity(0.7),
-                              ],
+                      )
+                    : Container(
+                        color: Colors.grey[800],
+                        child: const Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white54,
+                          size: 40,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (rank <= 3)
-                          Icon(
-                            rank == 1
-                                ? Icons.emoji_events
-                                : rank == 2
-                                ? Icons.military_tech
-                                : Icons.workspace_premium,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                        if (rank <= 3) const SizedBox(width: 4),
-                        Text(
-                          '#$rank',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
 
             // Info
@@ -269,7 +297,7 @@ class _MangaPageState extends State<MangaPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    manga.displayTitle,
+                    anime.displayTitle,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -279,13 +307,13 @@ class _MangaPageState extends State<MangaPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  if (manga.score != null)
+                  if (anime.score != null)
                     Row(
                       children: [
                         const Icon(Icons.star, size: 14, color: Colors.amber),
                         const SizedBox(width: 4),
                         Text(
-                          manga.scoreString,
+                          anime.scoreString,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -294,7 +322,7 @@ class _MangaPageState extends State<MangaPage> {
                         ),
                       ],
                     ),
-                  if (manga.type != null) ...[
+                  if (anime.type != null) ...[
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -306,7 +334,7 @@ class _MangaPageState extends State<MangaPage> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        manga.type!,
+                        anime.type!,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,

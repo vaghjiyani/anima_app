@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import '../main.dart';
 import '../widgets/app_sidebar.dart';
 import '../services/auth_service.dart';
@@ -217,7 +218,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     // Use seasonal anime for featured banners
-    final List<Anime> featuredAnime = _seasonalAnime.take(3).toList();
+    final List<Anime> featuredAnime = _seasonalAnime.take(10).toList();
 
     final List<String> categories = const [
       'Action',
@@ -315,10 +316,73 @@ class _HomePageState extends State<HomePage> {
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
                     ),
-                    _SearchBar(controller: _searchController),
+                    _SearchBar(
+                      controller: _searchController,
+                      onSubmitted: _performSearch,
+                    ),
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
                     ),
+
+                    // Search Results Section
+                    if (_isSearching || _searchResults.isNotEmpty) ...[
+                      _SectionHeader(title: 'Search Results'),
+                      SizedBox(
+                        height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
+                      ),
+
+                      if (_isSearching)
+                        SizedBox(
+                          height: 200,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        )
+                      else if (_searchResults.isEmpty)
+                        Container(
+                          padding: EdgeInsets.all(
+                            ResponsiveHelper.isDesktop(context) ? 32 : 24,
+                          ),
+                          child: Center(
+                            child: Text(
+                              'No results found',
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white70
+                                    : Colors.black54,
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(
+                                      context,
+                                      16,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: ResponsiveHelper.getResponsivePadding(
+                            context,
+                          ),
+                          itemCount: _searchResults.length,
+                          itemBuilder: (context, index) {
+                            return _SearchResultTile(
+                              anime: _searchResults[index],
+                            );
+                          },
+                        ),
+
+                      SizedBox(
+                        height: ResponsiveHelper.isDesktop(context) ? 32 : 24,
+                      ),
+                    ],
+
                     _SectionHeader(title: 'Featured'),
                     _isLoadingSeasonal
                         ? SizedBox(
@@ -347,26 +411,37 @@ class _HomePageState extends State<HomePage> {
                           )
                         : SizedBox(
                             height: ResponsiveHelper.getBannerHeight(context),
-                            child: ListView.builder(
-                              padding: ResponsiveHelper.getResponsivePadding(
-                                context,
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
+                                    scrollbars: false,
+                                  ),
+                              child: ListView.builder(
+                                padding: ResponsiveHelper.getResponsivePadding(
+                                  context,
+                                ),
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: featuredAnime.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      right: index < featuredAnime.length - 1
+                                          ? 12
+                                          : 0,
+                                    ),
+                                    child: _BannerCard(
+                                      anime: featuredAnime[index],
+                                    ),
+                                  );
+                                },
                               ),
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              shrinkWrap: true,
-                              itemCount: featuredAnime.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    right: index < featuredAnime.length - 1
-                                        ? 12
-                                        : 0,
-                                  ),
-                                  child: _BannerCard(
-                                    anime: featuredAnime[index],
-                                  ),
-                                );
-                              },
                             ),
                           ),
                     SizedBox(
@@ -402,23 +477,39 @@ class _HomePageState extends State<HomePage> {
                                 ? 16
                                 : 12,
                           ),
+                          // Scrollable categories with mouse wheel support
                           SizedBox(
                             height: ResponsiveHelper.isDesktop(context)
-                                ? 52
-                                : 44,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              shrinkWrap: true,
-                              itemCount: categories.length,
-                              separatorBuilder: (_, __) => SizedBox(
-                                width: ResponsiveHelper.isDesktop(context)
-                                    ? 12
-                                    : 8,
+                                ? 56
+                                : 48,
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
+                                    scrollbars: false,
+                                  ),
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                ),
+                                itemCount: categories.length,
+                                separatorBuilder: (_, __) => SizedBox(
+                                  width: ResponsiveHelper.isDesktop(context)
+                                      ? 12
+                                      : 8,
+                                ),
+                                itemBuilder: (context, index) {
+                                  return _CategoryChip(
+                                    label: categories[index],
+                                  );
+                                },
                               ),
-                              itemBuilder: (context, index) {
-                                return _CategoryChip(label: categories[index]);
-                              },
                             ),
                           ),
                         ],
@@ -459,25 +550,38 @@ class _HomePageState extends State<HomePage> {
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
                             ),
-                            child: ListView.builder(
-                              padding: ResponsiveHelper.getResponsivePadding(
-                                context,
-                              ),
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              shrinkWrap: true,
-                              itemCount: _trendingAnime.length,
-                              itemBuilder: (context, index) {
-                                final anime = _trendingAnime[index];
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    right: index < _trendingAnime.length - 1
-                                        ? 12
-                                        : 0,
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
+                                    scrollbars: false,
                                   ),
-                                  child: _AnimeCard(anime: anime),
-                                );
-                              },
+                              child: ListView.builder(
+                                padding: ResponsiveHelper.getResponsivePadding(
+                                  context,
+                                ),
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: _trendingAnime.length,
+                                itemBuilder: (context, index) {
+                                  final anime = _trendingAnime[index];
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      right: index < _trendingAnime.length - 1
+                                          ? ResponsiveHelper.isDesktop(context)
+                                                ? 16
+                                                : 12
+                                          : 0,
+                                    ),
+                                    child: _AnimeCard(anime: anime),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                     SizedBox(
@@ -512,25 +616,36 @@ class _HomePageState extends State<HomePage> {
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
                             ),
-                            child: ListView.builder(
-                              padding: ResponsiveHelper.getResponsivePadding(
-                                context,
-                              ),
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              shrinkWrap: true,
-                              itemCount: _topAnime.length,
-                              itemBuilder: (context, index) {
-                                final anime = _topAnime[index];
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    right: index < _topAnime.length - 1
-                                        ? 12
-                                        : 0,
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
+                                    scrollbars: false,
                                   ),
-                                  child: _AnimeCard(anime: anime),
-                                );
-                              },
+                              child: ListView.builder(
+                                padding: ResponsiveHelper.getResponsivePadding(
+                                  context,
+                                ),
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: _topAnime.length,
+                                itemBuilder: (context, index) {
+                                  final anime = _topAnime[index];
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      right: index < _topAnime.length - 1
+                                          ? 12
+                                          : 0,
+                                    ),
+                                    child: _AnimeCard(anime: anime),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                     SizedBox(
@@ -563,25 +678,36 @@ class _HomePageState extends State<HomePage> {
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
                             ),
-                            child: ListView.builder(
-                              padding: ResponsiveHelper.getResponsivePadding(
-                                context,
-                              ),
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              shrinkWrap: true,
-                              itemCount: _seasonalAnime.length,
-                              itemBuilder: (context, index) {
-                                final anime = _seasonalAnime[index];
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    right: index < _seasonalAnime.length - 1
-                                        ? 12
-                                        : 0,
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
+                                    scrollbars: false,
                                   ),
-                                  child: _AnimeCard(anime: anime),
-                                );
-                              },
+                              child: ListView.builder(
+                                padding: ResponsiveHelper.getResponsivePadding(
+                                  context,
+                                ),
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: _seasonalAnime.length,
+                                itemBuilder: (context, index) {
+                                  final anime = _seasonalAnime[index];
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      right: index < _seasonalAnime.length - 1
+                                          ? 12
+                                          : 0,
+                                    ),
+                                    child: _AnimeCard(anime: anime),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                     SizedBox(
@@ -616,23 +742,34 @@ class _HomePageState extends State<HomePage> {
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
                             ),
-                            child: ListView.builder(
-                              padding: ResponsiveHelper.getResponsivePadding(
-                                context,
-                              ),
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              shrinkWrap: true,
-                              itemCount: _topAnime.take(5).length,
-                              itemBuilder: (context, index) {
-                                final anime = _topAnime[index];
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    right: index < 4 ? 12 : 0,
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context)
+                                  .copyWith(
+                                    dragDevices: {
+                                      PointerDeviceKind.touch,
+                                      PointerDeviceKind.mouse,
+                                      PointerDeviceKind.trackpad,
+                                    },
+                                    scrollbars: false,
                                   ),
-                                  child: _AnimeCard(anime: anime),
-                                );
-                              },
+                              child: ListView.builder(
+                                padding: ResponsiveHelper.getResponsivePadding(
+                                  context,
+                                ),
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: _topAnime.take(5).length,
+                                itemBuilder: (context, index) {
+                                  final anime = _topAnime[index];
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      right: index < 4 ? 12 : 0,
+                                    ),
+                                    child: _AnimeCard(anime: anime),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                   ] else if (_selectedIndex == 1) ...[
@@ -1192,6 +1329,7 @@ class _SearchBarState extends State<_SearchBar>
             ),
             child: TextField(
               controller: widget.controller,
+              cursorColor: Colors.white,
               onTap: () => _onFocusChange(true),
               onSubmitted: (value) {
                 _onFocusChange(false);
