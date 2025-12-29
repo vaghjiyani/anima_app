@@ -33,6 +33,8 @@ class Anime {
     this.popularity,
   });
 
+  int get malId => id;
+
   factory Anime.fromJson(Map<String, dynamic> json) {
     return Anime(
       id: json['mal_id'] ?? 0,
@@ -56,6 +58,17 @@ class Anime {
       season: json['season'],
       rank: json['rank'],
       popularity: json['popularity'],
+    );
+  }
+
+  factory Anime.fromFavorite(Map<String, dynamic> data) {
+    return Anime(
+      id: data['malId'] ?? 0,
+      title: data['title'] ?? 'Unknown',
+      imageUrl: data['imageUrl'],
+      score: data['score']?.toDouble(),
+      episodes: data['episodes'],
+      status: data['status'],
     );
   }
 

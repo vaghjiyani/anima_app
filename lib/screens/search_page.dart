@@ -6,6 +6,8 @@ import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/custom_app_bar.dart';
 import 'anime_detail_page.dart';
+import 'home_page.dart';
+import 'favorites_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class SearchPage extends StatefulWidget {
@@ -102,8 +104,12 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return GradientScaffold(
-      appBarTitle: 'Search Anime',
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Search Anime'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Container(
         decoration: AppColors.themedPrimaryGradient(context),
         child: SafeArea(
@@ -185,6 +191,49 @@ class _SearchPageState extends State<SearchPage> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        onTap: (index) {
+          if (index == 1) return;
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomePage()),
+            );
+            return;
+          }
+          if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const FavoritesPage()),
+            );
+          }
+        },
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[900]
+            : Colors.white,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white54
+            : Colors.black54,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search_outlined),
+            activeIcon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_border),
+            activeIcon: Icon(Icons.favorite),
+            label: 'Favorite',
+          ),
+        ],
       ),
     );
   }

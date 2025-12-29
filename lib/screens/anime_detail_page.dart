@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/anime.dart';
 import '../services/jikan_api_service.dart';
+import '../services/favorites_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 
@@ -14,10 +15,17 @@ class AnimeDetailPage extends StatefulWidget {
   State<AnimeDetailPage> createState() => _AnimeDetailPageState();
 }
 
-class _AnimeDetailPageState extends State<AnimeDetailPage> {
+class _AnimeDetailPageState extends State<AnimeDetailPage>
+    with TickerProviderStateMixin {
   late Anime _anime;
   bool _isLoading = false;
   bool _isFavorite = false;
+  
+  late AnimationController _favoriteController;
+  late AnimationController _pulseController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _pulseAnimation;
+  late Animation<Color?> _colorAnimation;
 
   @override
   void initState() {
@@ -25,6 +33,59 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     _anime = widget.anime;
     _loadFullDetails();
     _loadEpisodes();
+    _checkFavoriteStatus();
+    
+    // Initialize animation controllers
+    _favoriteController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    
+    // Scale animation for heart
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.3,
+    ).animate(CurvedAnimation(
+      parent: _favoriteController,
+      curve: Curves.elasticOut,
+    ));
+    
+    // Pulse animation
+    _pulseAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.5,
+    ).animate(CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeOut,
+    ));
+    
+    // Color animation
+    _colorAnimation = ColorTween(
+      begin: Colors.white,
+      end: Colors.red,
+    ).animate(CurvedAnimation(
+      parent: _favoriteController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    final isFav = await FavoritesService.isFavorite(_anime.malId);
+    if (mounted) {
+      setState(() => _isFavorite = isFav);
+    }
+  }
+
+  @override
+  void dispose() {
+    _favoriteController.dispose();
+    _pulseController.dispose();
+    super.dispose();
   }
 
   List<Map<String, dynamic>> _episodes = [];
@@ -67,20 +128,50 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     }
   }
 
-  void _toggleFavorite() {
-    setState(() {
-      _isFavorite = !_isFavorite;
+  void _toggleFavorite() async {
+    // Start animations
+    _favoriteController.forward().then((_) {
+      _favoriteController.reverse();
     });
-    // TODO: Save to favorites in local storage or Firebase
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isFavorite ? 'Added to favorites' : 'Removed from favorites',
-        ),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    
+    if (!_isFavorite) {
+      _pulseController.forward().then((_) {
+        _pulseController.reverse();
+      });
+    }
+    
+    try {
+      if (_isFavorite) {
+        await FavoritesService.removeFromFavorites(_anime.malId);
+      } else {
+        await FavoritesService.addToFavorites(_anime);
+      }
+      
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isFavorite ? 'Added to favorites' : 'Removed from favorites',
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -104,19 +195,47 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: _isFavorite ? Colors.red : Colors.white,
-              ),
-            ),
-            onPressed: _toggleFavorite,
+          AnimatedBuilder(
+            animation: Listenable.merge([_favoriteController, _pulseController]),
+            builder: (context, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Pulse effect
+                  if (!_isFavorite && _pulseController.isAnimating)
+                    Transform.scale(
+                      scale: _pulseAnimation.value,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.red.withOpacity(0.3),
+                        ),
+                      ),
+                    ),
+                  // Heart button
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Transform.scale(
+                        scale: _scaleAnimation.value,
+                        child: Icon(
+                          _isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: _isFavorite ? Colors.red : Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                    onPressed: _toggleFavorite,
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],

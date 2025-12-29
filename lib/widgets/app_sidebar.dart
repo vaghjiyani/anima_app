@@ -66,236 +66,214 @@ class _AppSidebarState extends State<AppSidebar>
       child: SafeArea(
         child: Container(
           decoration: AppColors.themedPrimaryGradient(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizeTransition(
-                sizeFactor: CurvedAnimation(
-                  parent: _controller,
-                  curve: const Interval(0.0, 0.6, curve: Curves.easeOutQuart),
-                ),
-                axisAlignment: -1.0,
-                child: _AnimatedHeader(controller: _controller),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
               ),
-              FadeTransition(
-                opacity: _fade(0),
-                child: SlideTransition(
-                  position: _slide(0),
-                  child: _NavTile(
-                    icon: Icons.home_outlined,
-                    label: 'Home',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                ),
-              ),
-
-              // Browse Section
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Text(
-                  'BROWSE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.black54,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FadeTransition(
-                opacity: _fade(1),
-                child: SlideTransition(
-                  position: _slide(1),
-                  child: _NavTile(
-                    icon: Icons.search,
-                    label: 'Search',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SearchPage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FadeTransition(
-                opacity: _fade(2),
-                child: SlideTransition(
-                  position: _slide(2),
-                  child: _NavTile(
-                    icon: Icons.trending_up,
-                    label: 'Top Anime',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TopAnimePage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FadeTransition(
-                opacity: _fade(3),
-                child: SlideTransition(
-                  position: _slide(3),
-                  child: _NavTile(
-                    icon: Icons.calendar_today,
-                    label: 'Seasonal Anime',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SeasonalAnimePage(),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizeTransition(
+                      sizeFactor: CurvedAnimation(
+                        parent: _controller,
+                        curve: const Interval(0.0, 0.6, curve: Curves.easeOutQuart),
+                      ),
+                      axisAlignment: -1.0,
+                      child: _AnimatedHeader(controller: _controller),
+                    ),
+                    FadeTransition(
+                      opacity: _fade(0),
+                      child: SlideTransition(
+                        position: _slide(0),
+                        child: _NavTile(
+                          icon: Icons.home_outlined,
+                          label: 'Home',
+                          onTap: () => Navigator.pop(context),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FadeTransition(
-                opacity: _fade(4),
-                child: SlideTransition(
-                  position: _slide(4),
-                  child: _NavTile(
-                    icon: Icons.book_outlined,
-                    label: 'Manga',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MangaPage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
+                      ),
+                    ),
 
-              // Library Section
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                child: Text(
-                  'LIBRARY',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.black54,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FadeTransition(
-                opacity: _fade(5),
-                child: SlideTransition(
-                  position: _slide(5),
-                  child: _NavTile(
-                    icon: Icons.favorite,
-                    label: 'Favorites',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Favorites page will be implemented
-                    },
-                  ),
-                ),
-              ),
-
-              // Settings Section
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                child: Text(
-                  'SETTINGS',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white70
-                        : Colors.black54,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FadeTransition(
-                opacity: _fade(6),
-                child: SlideTransition(
-                  position: _slide(6),
-                  child: _NavTile(
-                    icon: Icons.person_outline,
-                    label: 'Profile',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ProfilePage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              FadeTransition(
-                opacity: _fade(7),
-                child: SlideTransition(
-                  position: _slide(7),
-                  child: _NavTile(
-                    icon: Icons.dark_mode,
-                    label: 'Theme Settings',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ThemeSettingsPage(),
+                    // Browse Section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                      child: Text(
+                        'BROWSE',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white70
+                              : Colors.black54,
+                          letterSpacing: 1.2,
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FadeTransition(
+                      opacity: _fade(1),
+                      child: SlideTransition(
+                        position: _slide(1),
+                        child: _NavTile(
+                          icon: Icons.search,
+                          label: 'Search',
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const SearchPage()),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FadeTransition(
+                      opacity: _fade(2),
+                      child: SlideTransition(
+                        position: _slide(2),
+                        child: _NavTile(
+                          icon: Icons.trending_up,
+                          label: 'Top Anime',
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const TopAnimePage()),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FadeTransition(
+                      opacity: _fade(3),
+                      child: SlideTransition(
+                        position: _slide(3),
+                        child: _NavTile(
+                          icon: Icons.calendar_today,
+                          label: 'Seasonal Anime',
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SeasonalAnimePage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FadeTransition(
+                      opacity: _fade(4),
+                      child: SlideTransition(
+                        position: _slide(4),
+                        child: _NavTile(
+                          icon: Icons.book_outlined,
+                          label: 'Manga',
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const MangaPage()),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    // Library Section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                      child: Text(
+                        'SETTINGS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white70
+                              : Colors.black54,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FadeTransition(
+                      opacity: _fade(5),
+                      child: SlideTransition(
+                        position: _slide(5),
+                        child: _NavTile(
+                          icon: Icons.person_outline,
+                          label: 'Profile',
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ProfilePage()),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FadeTransition(
+                      opacity: _fade(6),
+                      child: SlideTransition(
+                        position: _slide(6),
+                        child: _NavTile(
+                          icon: Icons.dark_mode,
+                          label: 'Theme Settings',
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ThemeSettingsPage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    FadeTransition(
+                      opacity: _fade(5),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                        child: _LogoutTile(
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await AuthService.signOut();
+                            if (context.mounted) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => const SigninScreen(),
+                                ),
+                                (route) => false,
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text(
+                        'v1.0.0',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
-              FadeTransition(
-                opacity: _fade(5),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: _LogoutTile(
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await AuthService.signOut();
-                      if (context.mounted) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (_) => const SigninScreen(),
-                          ),
-                          (route) => false,
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Text(
-                  'v1.0.0',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -328,16 +306,13 @@ class _AnimatedHeader extends StatelessWidget {
       opacity: fade,
       child: SlideTransition(
         position: slide,
-        child: DrawerHeader(
-          decoration: const BoxDecoration(color: Colors.transparent),
-          child: Align(
-            alignment: Alignment.bottomLeft,
-            child: Text(
-              'Anima Menu',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
-              ),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: Text(
+            'Anima Menu',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),

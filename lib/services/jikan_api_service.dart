@@ -258,6 +258,27 @@ class JikanApiService {
     return 'fall';
   }
 
+  // Get magazines
+  static Future<List<Map<String, dynamic>>> getMagazines({int page = 1}) async {
+    await _respectRateLimit();
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/magazines?page=$page'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> magazinesList = data['data'] ?? [];
+        return magazinesList.cast<Map<String, dynamic>>();
+      } else {
+        throw Exception('Failed to load magazines: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching magazines: $e');
+    }
+  }
+
   // Genre IDs for reference
   static const Map<String, int> genreIds = {
     'Action': 1,

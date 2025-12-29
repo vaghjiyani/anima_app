@@ -716,9 +716,9 @@ class _HomePageState extends State<HomePage> {
 
                     // Magazines section
                     _SectionHeader(title: 'Magazines'),
-                    SizedBox(height: 0),
                     _SeeAllButton(
                       onTap: () {
+                        print('Magazines See All button tapped');
                         Navigator.push(
                           context,
                           MaterialPageRoute(
