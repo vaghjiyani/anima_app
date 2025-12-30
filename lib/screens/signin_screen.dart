@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../services/auth_service.dart';
 import 'signup_screen.dart';
@@ -14,7 +13,8 @@ class SigninScreen extends StatefulWidget {
   State<SigninScreen> createState() => _SigninScreenState();
 }
 
-class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMixin {
+class _SigninScreenState extends State<SigninScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -37,9 +37,9 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
       parent: _successAnimationController,
       curve: Curves.elasticOut,
     );
-    
+
     _loadRememberedCredentials();
-    
+
     // Check if coming from signup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments;
@@ -54,7 +54,7 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
     final rememberedEmail = prefs.getString('remembered_email');
     final rememberedPassword = prefs.getString('remembered_password');
     final isRemembered = prefs.getBool('remember_me') ?? false;
-    
+
     if (isRemembered && rememberedEmail != null && rememberedPassword != null) {
       setState(() {
         _emailController.text = rememberedEmail;
@@ -77,7 +77,7 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
       _showSuccessMessage = true;
     });
     _successAnimationController.forward();
-    
+
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         _successAnimationController.reverse().then((_) {
@@ -93,19 +93,19 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
 
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     FocusScope.of(context).unfocus();
-    
+
     try {
       await AuthService.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      
+
       // Save credentials if remember me is checked
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
@@ -117,7 +117,7 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
         await prefs.remove('remembered_password');
         await prefs.setBool('remember_me', false);
       }
-      
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -127,10 +127,7 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -146,7 +143,15 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: AppColors.primaryGradientDecoration,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: Theme.of(context).brightness == Brightness.dark
+                ? [const Color(0xFF1a1a2e), const Color(0xFF16213e)]
+                : [const Color(0xFFE3F2FD), const Color(0xFFBBDEFB)],
+          ),
+        ),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: ResponsiveHelper.getResponsivePadding(context),
@@ -243,7 +248,7 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
                                 28,
                               ),
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -260,7 +265,9 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
                                 context,
                                 14,
                               ),
-                              color: Colors.black54,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
                             ),
                           ),
                         ),
@@ -339,7 +346,9 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
                               _obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: Colors.black54,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
                             ),
                             onPressed: () {
                               setState(() {
@@ -376,10 +385,12 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
                                   activeColor: Colors.green[400],
                                   checkColor: Colors.white,
                                 ),
-                                const Text(
+                                Text(
                                   "Remember me",
                                   style: TextStyle(
-                                    color: Colors.black54,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.6),
                                     fontSize: 16,
                                   ),
                                 ),
@@ -454,10 +465,12 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 "Don't have an account? ",
                                 style: TextStyle(
-                                  color: Colors.black54,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.6),
                                   fontSize: 16,
                                 ),
                               ),
@@ -515,7 +528,7 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
         Text(
           label,
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             fontWeight: FontWeight.w500,
           ),
@@ -527,33 +540,33 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
           keyboardType: keyboardType,
           validator: validator,
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: Colors.black.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             ),
             prefixIcon: Icon(
               prefixIcon,
-              color: Colors.black54,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               size: ResponsiveHelper.getIconSize(context, 24),
             ),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.8),
+            fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.9),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Colors.black.withValues(alpha: 0.3),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Colors.black.withValues(alpha: 0.3),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -577,6 +590,4 @@ class _SigninScreenState extends State<SigninScreen> with TickerProviderStateMix
       ],
     );
   }
-
-
 }

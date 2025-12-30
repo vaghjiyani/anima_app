@@ -114,7 +114,7 @@ class MyAppState extends State<MyApp> {
       theme: light,
       darkTheme: dark,
       themeMode: _themeMode,
-      home: const AuthWrapper(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

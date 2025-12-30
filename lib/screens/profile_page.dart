@@ -5,6 +5,8 @@ import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -26,6 +28,9 @@ class _ProfilePageState extends State<ProfilePage> {
   String _selectedGender = 'Male';
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
 
+  bool _isLoading = false;
+  bool _isSaving = false;
+
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -37,23 +42,44 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        final user = AuthService.currentUser;
-        if (user != null) {
-          await user.updateDisplayName(_fullNameController.text);
+      setState(() {
+        _isSaving = true;
+      });
 
-          // Save additional profile data to SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_nickname', _nicknameController.text);
-          await prefs.setString('user_phone', _phoneController.text);
-          await prefs.setString('user_gender', _selectedGender);
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          throw Exception('No user logged in');
         }
+
+        // Update display name in Firebase Auth
+        await user.updateDisplayName(_fullNameController.text);
+
+        // Save to Firestore (primary storage)
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'email': user.email,
+          'fullName': _fullNameController.text.trim(),
+          'nickname': _nicknameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'gender': _selectedGender,
+          'profileImagePath': _profileImageFile?.path ?? '',
+          'updatedAt': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true)); // merge = update existing fields only
+
+        // Also save to SharedPreferences as backup (for offline access)
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_nickname', _nicknameController.text);
+        await prefs.setString('user_phone', _phoneController.text);
+        await prefs.setString('user_gender', _selectedGender);
+        await prefs.setString('user_fullname', _fullNameController.text);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Profile saved successfully!'),
+              content: Text('✅ Profile saved to cloud!'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
           );
           Navigator.pop(context);
@@ -62,10 +88,17 @@ class _ProfilePageState extends State<ProfilePage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to save profile: $e'),
+              content: Text('❌ Error: ${e.toString()}'),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
             ),
           );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
         }
       }
     }
@@ -78,14 +111,78 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadUserData();
   }
 
-  void _loadUserData() {
-    final user = AuthService.currentUser;
-    if (user != null) {
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // Set email (always from Firebase Auth)
       setState(() {
         _emailController.text = user.email ?? '';
-        _fullNameController.text = user.displayName ?? '';
       });
+
+      // Try to load from Firestore first
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          setState(() {
+            _fullNameController.text =
+                data['fullName'] ?? user.displayName ?? '';
+            _nicknameController.text = data['nickname'] ?? '';
+            _phoneController.text = data['phone'] ?? '';
+            _selectedGender = data['gender'] ?? 'Male';
+          });
+
+          // Also save to SharedPreferences for offline access
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_fullname', data['fullName'] ?? '');
+          await prefs.setString('user_nickname', data['nickname'] ?? '');
+          await prefs.setString('user_phone', data['phone'] ?? '');
+          await prefs.setString('user_gender', data['gender'] ?? 'Male');
+        } else {
+          // No Firestore data, try SharedPreferences
+          await _loadFromSharedPreferences(user);
+        }
+      } catch (e) {
+        // Firestore failed, use SharedPreferences
+        await _loadFromSharedPreferences(user);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading profile: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Future<void> _loadFromSharedPreferences(User user) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _fullNameController.text =
+          prefs.getString('user_fullname') ?? user.displayName ?? '';
+      _nicknameController.text = prefs.getString('user_nickname') ?? '';
+      _phoneController.text = prefs.getString('user_phone') ?? '';
+      _selectedGender = prefs.getString('user_gender') ?? 'Male';
+    });
   }
 
   Future<void> _loadSavedProfileImage() async {
@@ -99,24 +196,61 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     }
-
-    // Load additional profile data
-    final nickname = prefs.getString('user_nickname');
-    final phone = prefs.getString('user_phone');
-    final gender = prefs.getString('user_gender');
-
-    if (nickname != null) _nicknameController.text = nickname;
-    if (phone != null) _phoneController.text = phone;
-    if (gender != null) _selectedGender = gender;
   }
 
   Future<void> _pickAndSaveProfileImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+    XFile? picked;
+
+    // Check if running on desktop (Windows, macOS, Linux)
+    final isDesktop =
+        Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+
+    if (isDesktop) {
+      // On desktop, directly pick from files
+      picked = await picker.pickImage(source: ImageSource.gallery);
+    } else {
+      // On mobile, show dialog to choose camera or gallery
+      final source = await showDialog<ImageSource>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Choose Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (source == null) return;
+      picked = await picker.pickImage(source: source);
+    }
+
     if (picked == null) return;
 
     final file = File(picked.path);
-    if (!await file.exists()) return;
+    if (!await file.exists()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load image'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() {
       _profileImageFile = file;
@@ -124,6 +258,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_profileImagePathKey, file.path);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile image updated!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -504,7 +648,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         width: double.infinity,
                         height: ResponsiveHelper.getButtonHeight(context),
                         child: ElevatedButton(
-                          onPressed: _saveProfile,
+                          onPressed: _isSaving ? null : _saveProfile,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green[400],
                             foregroundColor: Colors.white,
@@ -514,16 +658,26 @@ class _ProfilePageState extends State<ProfilePage> {
                             elevation: 8,
                             shadowColor: Colors.black.withOpacity(0.3),
                           ),
-                          child: Text(
-                            'Save Profile',
-                            style: TextStyle(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                context,
-                                18,
-                              ),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child: _isSaving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Save Profile',
+                                  style: TextStyle(
+                                    fontSize:
+                                        ResponsiveHelper.getResponsiveFontSize(
+                                          context,
+                                          18,
+                                        ),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
 
