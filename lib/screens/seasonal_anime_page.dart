@@ -6,6 +6,7 @@ import '../services/jikan_api_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/shimmer_widgets.dart';
 import 'anime_detail_page.dart';
 
 class SeasonalAnimePage extends StatefulWidget {
@@ -155,11 +156,7 @@ class _SeasonalAnimePageState extends State<SeasonalAnimePage> {
 
   Widget _buildContent(bool isDark) {
     if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      );
+      return const AnimeGridShimmer(itemCount: 8);
     }
 
     if (_errorMessage != null) {

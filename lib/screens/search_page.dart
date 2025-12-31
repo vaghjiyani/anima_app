@@ -5,6 +5,7 @@ import '../services/jikan_api_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/shimmer_widgets.dart';
 import 'anime_detail_page.dart';
 import 'home_page.dart';
 import 'favorites_page.dart';
@@ -347,11 +348,7 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _buildContent(bool isDark) {
     if (_isSearching) {
-      return Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      );
+      return const AnimeGridShimmer(itemCount: 6);
     }
 
     if (!_hasSearched) {

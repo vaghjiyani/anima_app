@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
-import 'widgets/auth_wrapper.dart';
 
 final GlobalKey<MyAppState> appKey = GlobalKey<MyAppState>();
 
@@ -114,7 +113,7 @@ class MyAppState extends State<MyApp> {
       theme: light,
       darkTheme: dark,
       themeMode: _themeMode,
-      home: const AuthWrapper(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

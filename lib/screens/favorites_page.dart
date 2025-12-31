@@ -4,6 +4,7 @@ import '../services/favorites_service.dart';
 import '../models/anime.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
+import '../widgets/shimmer_widgets.dart';
 import 'anime_detail_page.dart';
 import 'home_page.dart';
 import 'search_page.dart';
@@ -34,7 +35,7 @@ class FavoritesPage extends StatelessWidget {
             stream: FavoritesService.getFavorites(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const AnimeGridShimmer(itemCount: 6);
               }
 
               final favorites = snapshot.data ?? [];
@@ -95,13 +96,17 @@ class FavoritesPage extends StatelessWidget {
                               onPressed: () {
                                 Navigator.pushReplacement(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const HomePage()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const HomePage(),
+                                  ),
                                 );
                               },
                               icon: Icon(Icons.home),
                               label: Text('Browse'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
                                 foregroundColor: Colors.white,
                               ),
                             ),
@@ -109,7 +114,9 @@ class FavoritesPage extends StatelessWidget {
                               onPressed: () {
                                 Navigator.pushReplacement(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const SearchPage()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const SearchPage(),
+                                  ),
                                 );
                               },
                               icon: Icon(Icons.search),
@@ -168,8 +175,8 @@ class FavoritesPage extends StatelessWidget {
                                       width: double.infinity,
                                       placeholder: (context, url) =>
                                           const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
+                                            child: CircularProgressIndicator(),
+                                          ),
                                       errorWidget: (context, url, error) =>
                                           const Icon(Icons.error),
                                     )
@@ -200,22 +207,28 @@ class FavoritesPage extends StatelessWidget {
                                       if (anime.score != null)
                                         Row(
                                           children: [
-                                            const Icon(Icons.star,
-                                                size: 16, color: Colors.amber),
+                                            const Icon(
+                                              Icons.star,
+                                              size: 16,
+                                              color: Colors.amber,
+                                            ),
                                             Text(
                                               anime.scoreString,
                                               style: const TextStyle(
-                                                  fontSize: 12),
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ],
                                         ),
                                       IconButton(
-                                        icon: const Icon(Icons.favorite,
-                                            color: Colors.red),
+                                        icon: const Icon(
+                                          Icons.favorite,
+                                          color: Colors.red,
+                                        ),
                                         onPressed: () async {
-                                          await FavoritesService
-                                              .removeFromFavorites(
-                                                  anime.malId);
+                                          await FavoritesService.removeFromFavorites(
+                                            anime.malId,
+                                          );
                                         },
                                         padding: EdgeInsets.zero,
                                         constraints: const BoxConstraints(),

@@ -6,6 +6,7 @@ import '../services/jikan_api_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/shimmer_widgets.dart';
 import 'anime_detail_page.dart';
 
 class TopAnimePage extends StatefulWidget {
@@ -69,11 +70,7 @@ class _TopAnimePageState extends State<TopAnimePage> {
 
   Widget _buildContent(bool isDark) {
     if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      );
+      return const ListShimmer(itemCount: 10);
     }
 
     if (_errorMessage != null) {

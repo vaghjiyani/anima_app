@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
+import '../widgets/shimmer_widgets.dart';
 import 'profile_page.dart';
 import 'top_anime_page.dart';
 import 'manga_page.dart';
