@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class Anime {
   final int id;
   final String title;
@@ -98,7 +100,11 @@ class Anime {
 
   String get genresString => genres.join(', ');
 
-  String get scoreString => score != null ? score!.toStringAsFixed(2) : 'N/A';
+  String get scoreString {
+    if (score == null) return 'N/A';
+    final formatter = NumberFormat('#0.00');
+    return formatter.format(score);
+  }
 
   String get episodesString =>
       episodes != null ? '$episodes episodes' : 'Unknown';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../services/auth_service.dart';
 import 'signup_screen.dart';
@@ -143,15 +144,7 @@ class _SigninScreenState extends State<SigninScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: Theme.of(context).brightness == Brightness.dark
-                ? [const Color(0xFF1a1a2e), const Color(0xFF16213e)]
-                : [const Color(0xFFE3F2FD), const Color(0xFFBBDEFB)],
-          ),
-        ),
+        decoration: AppColors.primaryGradientDecoration,
         child: SafeArea(
           child: SingleChildScrollView(
             padding: ResponsiveHelper.getResponsivePadding(context),
@@ -248,7 +241,7 @@ class _SigninScreenState extends State<SigninScreen>
                                 28,
                               ),
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
+                              color: Colors.black,
                             ),
                           ),
                         ),
@@ -265,9 +258,7 @@ class _SigninScreenState extends State<SigninScreen>
                                 context,
                                 14,
                               ),
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
+                              color: Colors.black54,
                             ),
                           ),
                         ),
@@ -346,9 +337,7 @@ class _SigninScreenState extends State<SigninScreen>
                               _obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
+                              color: Colors.black54,
                             ),
                             onPressed: () {
                               setState(() {
@@ -385,12 +374,10 @@ class _SigninScreenState extends State<SigninScreen>
                                   activeColor: Colors.green[400],
                                   checkColor: Colors.white,
                                 ),
-                                Text(
+                                const Text(
                                   "Remember me",
                                   style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface.withOpacity(0.6),
+                                    color: Colors.black54,
                                     fontSize: 16,
                                   ),
                                 ),
@@ -465,12 +452,10 @@ class _SigninScreenState extends State<SigninScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
+                              const Text(
                                 "Don't have an account? ",
                                 style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.6),
+                                  color: Colors.black54,
                                   fontSize: 16,
                                 ),
                               ),
@@ -528,7 +513,7 @@ class _SigninScreenState extends State<SigninScreen>
         Text(
           label,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
+            color: Colors.black,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             fontWeight: FontWeight.w500,
           ),
@@ -540,33 +525,33 @@ class _SigninScreenState extends State<SigninScreen>
           keyboardType: keyboardType,
           validator: validator,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
+            color: Colors.black,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.6),
               fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             ),
             prefixIcon: Icon(
               prefixIcon,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Colors.black54,
               size: ResponsiveHelper.getIconSize(context, 24),
             ),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+            fillColor: Colors.white.withValues(alpha: 0.8),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
               ),
             ),
             focusedBorder: OutlineInputBorder(

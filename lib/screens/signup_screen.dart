@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
 import 'signin_screen.dart';
 import 'home_page.dart';
@@ -69,15 +70,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: Theme.of(context).brightness == Brightness.dark
-                ? [const Color(0xFF1a1a2e), const Color(0xFF16213e)]
-                : [const Color(0xFFE3F2FD), const Color(0xFFBBDEFB)],
-          ),
-        ),
+        decoration: AppColors.primaryGradientDecoration,
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -151,28 +144,23 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 15),
 
                       // Title
-                      Center(
+                      const Center(
                         child: Text(
                           "Create Account",
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: Colors.black,
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 5),
 
-                      Center(
+                      const Center(
                         child: Text(
                           "Sign up to get started",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
-                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ),
 
@@ -212,9 +200,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             _obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
+                            color: Colors.black54,
                           ),
                           onPressed: () {
                             setState(() {
@@ -282,12 +268,10 @@ class _SignupScreenState extends State<SignupScreen> {
                             activeColor: Colors.green[400],
                             checkColor: Colors.white,
                           ),
-                          Text(
+                          const Text(
                             "Remember me",
                             style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
+                              color: Colors.black54,
                               fontSize: 16,
                             ),
                           ),
@@ -336,12 +320,10 @@ class _SignupScreenState extends State<SignupScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
+                            const Text(
                               "Already have an account? ",
                               style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.6),
+                                color: Colors.black54,
                                 fontSize: 16,
                               ),
                             ),
@@ -394,8 +376,8 @@ class _SignupScreenState extends State<SignupScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
+          style: const TextStyle(
+            color: Colors.black,
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -406,29 +388,24 @@ class _SignupScreenState extends State<SignupScreen> {
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-            ),
-            prefixIcon: Icon(
-              prefixIcon,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            ),
+            hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.6)),
+            prefixIcon: Icon(prefixIcon, color: Colors.black54),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+            fillColor: Colors.white.withValues(alpha: 0.8),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
               ),
             ),
             focusedBorder: OutlineInputBorder(

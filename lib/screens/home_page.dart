@@ -17,7 +17,6 @@ import '../services/jikan_api_service.dart';
 import '../models/anime.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'anime_detail_page.dart';
-import '../widgets/shimmer_widgets.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -388,15 +387,10 @@ class _HomePageState extends State<HomePage> {
                     _isLoadingSeasonal
                         ? SizedBox(
                             height: ResponsiveHelper.getBannerHeight(context),
-                            child: ListView.builder(
-                              padding: ResponsiveHelper.getResponsivePadding(
-                                context,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
                               ),
-                              scrollDirection: Axis.horizontal,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: 3,
-                              itemBuilder: (context, index) =>
-                                  const ShimmerBannerCard(),
                             ),
                           )
                         : featuredAnime.isEmpty
@@ -530,15 +524,10 @@ class _HomePageState extends State<HomePage> {
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
                             ),
-                            child: ListView.builder(
-                              padding: ResponsiveHelper.getResponsivePadding(
-                                context,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
                               ),
-                              scrollDirection: Axis.horizontal,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: 5,
-                              itemBuilder: (context, index) =>
-                                  const ShimmerAnimeCard(),
                             ),
                           )
                         : _trendingAnime.isEmpty
@@ -617,15 +606,10 @@ class _HomePageState extends State<HomePage> {
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
                             ),
-                            child: ListView.builder(
-                              padding: ResponsiveHelper.getResponsivePadding(
-                                context,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
                               ),
-                              scrollDirection: Axis.horizontal,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: 5,
-                              itemBuilder: (context, index) =>
-                                  const ShimmerAnimeCard(),
                             ),
                           )
                         : SizedBox(

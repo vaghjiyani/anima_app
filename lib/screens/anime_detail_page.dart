@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 import '../models/anime.dart';
 import '../services/jikan_api_service.dart';
 import '../services/favorites_service.dart';
 import '../utils/app_colors.dart';
-import '../utils/responsive_helper.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final Anime anime;
@@ -20,12 +20,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
   late Anime _anime;
   bool _isLoading = false;
   bool _isFavorite = false;
-  
+
   late AnimationController _favoriteController;
   late AnimationController _pulseController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _pulseAnimation;
-  late Animation<Color?> _colorAnimation;
 
   @override
   void initState() {
@@ -34,44 +33,28 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
     _loadFullDetails();
     _loadEpisodes();
     _checkFavoriteStatus();
-    
+
     // Initialize animation controllers
     _favoriteController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-    
+
     // Scale animation for heart
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.3,
-    ).animate(CurvedAnimation(
-      parent: _favoriteController,
-      curve: Curves.elasticOut,
-    ));
-    
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(parent: _favoriteController, curve: Curves.elasticOut),
+    );
+
     // Pulse animation
     _pulseAnimation = Tween<double>(
       begin: 1.0,
       end: 1.5,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeOut,
-    ));
-    
-    // Color animation
-    _colorAnimation = ColorTween(
-      begin: Colors.white,
-      end: Colors.red,
-    ).animate(CurvedAnimation(
-      parent: _favoriteController,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeOut));
   }
 
   Future<void> _checkFavoriteStatus() async {
@@ -133,24 +116,24 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
     _favoriteController.forward().then((_) {
       _favoriteController.reverse();
     });
-    
+
     if (!_isFavorite) {
       _pulseController.forward().then((_) {
         _pulseController.reverse();
       });
     }
-    
+
     try {
       if (_isFavorite) {
         await FavoritesService.removeFromFavorites(_anime.malId);
       } else {
         await FavoritesService.addToFavorites(_anime);
       }
-      
+
       setState(() {
         _isFavorite = !_isFavorite;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -196,7 +179,10 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
         ),
         actions: [
           AnimatedBuilder(
-            animation: Listenable.merge([_favoriteController, _pulseController]),
+            animation: Listenable.merge([
+              _favoriteController,
+              _pulseController,
+            ]),
             builder: (context, child) {
               return Stack(
                 alignment: Alignment.center,
@@ -830,7 +816,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
                   ),
                   subtitle: aired != null
                       ? Text(
-                          '${aired.day}/${aired.month}/${aired.year}',
+                          DateFormat('MMM d, yyyy').format(aired),
                           style: TextStyle(
                             color: isDark ? Colors.white60 : Colors.black45,
                             fontSize: 12,
