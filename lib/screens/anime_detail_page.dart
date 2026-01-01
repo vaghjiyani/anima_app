@@ -5,6 +5,7 @@ import '../models/anime.dart';
 import '../services/jikan_api_service.dart';
 import '../services/favorites_service.dart';
 import '../utils/app_colors.dart';
+import '../utils/url_launcher_helper.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final Anime anime;
@@ -257,10 +258,15 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
                           const SizedBox(height: 20),
 
                           // Genres
+                          // Genres
                           if (_anime.genres.isNotEmpty) ...[
                             _buildGenres(isDark),
                             const SizedBox(height: 20),
                           ],
+
+                          // External Links
+                          _buildActionButtons(isDark),
+                          const SizedBox(height: 20),
 
                           // Synopsis
                           _buildSynopsis(isDark),
@@ -828,6 +834,31 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildActionButtons(bool isDark) {
+    return ElevatedButton.icon(
+      onPressed: () async {
+        try {
+          await UrlLauncherHelper.openMyAnimeListPage(_anime.malId);
+        } catch (e) {
+          if (mounted) {
+            UrlLauncherHelper.showLaunchError(
+              context,
+              'Could not open MyAnimeList',
+            );
+          }
+        }
+      },
+      icon: const Icon(Icons.open_in_new, size: 20),
+      label: const Text('View on MyAnimeList'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF2E51A2),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }

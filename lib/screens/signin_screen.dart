@@ -144,7 +144,7 @@ class _SigninScreenState extends State<SigninScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: AppColors.primaryGradientDecoration,
+        decoration: AppColors.themedPrimaryGradient(context),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: ResponsiveHelper.getResponsivePadding(context),
@@ -241,7 +241,7 @@ class _SigninScreenState extends State<SigninScreen>
                                 28,
                               ),
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -258,7 +258,9 @@ class _SigninScreenState extends State<SigninScreen>
                                 context,
                                 14,
                               ),
-                              color: Colors.black54,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.7),
                             ),
                           ),
                         ),
@@ -337,7 +339,9 @@ class _SigninScreenState extends State<SigninScreen>
                               _obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: Colors.black54,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
                             ),
                             onPressed: () {
                               setState(() {
@@ -371,13 +375,17 @@ class _SigninScreenState extends State<SigninScreen>
                                       _rememberMe = value ?? false;
                                     });
                                   },
-                                  activeColor: Colors.green[400],
+                                  activeColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
                                   checkColor: Colors.white,
                                 ),
-                                const Text(
+                                Text(
                                   "Remember me",
                                   style: TextStyle(
-                                    color: Colors.black54,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.7),
                                     fontSize: 16,
                                   ),
                                 ),
@@ -396,7 +404,7 @@ class _SigninScreenState extends State<SigninScreen>
                               child: Text(
                                 "Forgot Password?",
                                 style: TextStyle(
-                                  color: Colors.green[400],
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -414,7 +422,9 @@ class _SigninScreenState extends State<SigninScreen>
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _signIn,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green[400],
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(28),
@@ -452,10 +462,12 @@ class _SigninScreenState extends State<SigninScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 "Don't have an account? ",
                                 style: TextStyle(
-                                  color: Colors.black54,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.7),
                                   fontSize: 16,
                                 ),
                               ),
@@ -472,7 +484,9 @@ class _SigninScreenState extends State<SigninScreen>
                                 child: Text(
                                   "Sign up",
                                   style: TextStyle(
-                                    color: Colors.green[400],
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -513,7 +527,7 @@ class _SigninScreenState extends State<SigninScreen>
         Text(
           label,
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             fontWeight: FontWeight.w500,
           ),
@@ -525,38 +539,41 @@ class _SigninScreenState extends State<SigninScreen>
           keyboardType: keyboardType,
           validator: validator,
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: Colors.black.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             ),
             prefixIcon: Icon(
               prefixIcon,
-              color: Colors.black54,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               size: ResponsiveHelper.getIconSize(context, 24),
             ),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.8),
+            fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.8),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Colors.black.withValues(alpha: 0.3),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Colors.black.withValues(alpha: 0.3),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
