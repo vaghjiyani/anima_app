@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../models/anime.dart';
@@ -6,6 +7,7 @@ import '../services/jikan_api_service.dart';
 import '../services/favorites_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/url_launcher_helper.dart';
+import '../widgets/animated_favorite_button.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final Anime anime;
@@ -22,11 +24,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
   bool _isLoading = false;
   bool _isFavorite = false;
 
-  late AnimationController _favoriteController;
-  late AnimationController _pulseController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _pulseAnimation;
-
   @override
   void initState() {
     super.initState();
@@ -34,28 +31,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
     _loadFullDetails();
     _loadEpisodes();
     _checkFavoriteStatus();
-
-    // Initialize animation controllers
-    _favoriteController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-
-    // Scale animation for heart
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
-      CurvedAnimation(parent: _favoriteController, curve: Curves.elasticOut),
-    );
-
-    // Pulse animation
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.5,
-    ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeOut));
   }
 
   Future<void> _checkFavoriteStatus() async {
@@ -67,8 +42,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
 
   @override
   void dispose() {
-    _favoriteController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -113,17 +86,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
   }
 
   void _toggleFavorite() async {
-    // Start animations
-    _favoriteController.forward().then((_) {
-      _favoriteController.reverse();
-    });
-
-    if (!_isFavorite) {
-      _pulseController.forward().then((_) {
-        _pulseController.reverse();
-      });
-    }
-
     try {
       if (_isFavorite) {
         await FavoritesService.removeFromFavorites(_anime.malId);
@@ -138,11 +100,27 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _isFavorite ? 'Added to favorites' : 'Removed from favorites',
+            content: Row(
+              children: [
+                Icon(
+                  _isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  _isFavorite ? 'Added to favorites' : 'Removed from favorites',
+                ),
+              ],
             ),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: _isFavorite
+                ? Colors.red.shade700
+                : Colors.grey.shade800,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -152,6 +130,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -179,52 +158,22 @@ class _AnimeDetailPageState extends State<AnimeDetailPage>
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          AnimatedBuilder(
-            animation: Listenable.merge([
-              _favoriteController,
-              _pulseController,
-            ]),
-            builder: (context, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Pulse effect
-                  if (!_isFavorite && _pulseController.isAnimating)
-                    Transform.scale(
-                      scale: _pulseAnimation.value,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.red.withOpacity(0.3),
-                        ),
-                      ),
-                    ),
-                  // Heart button
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Transform.scale(
-                        scale: _scaleAnimation.value,
-                        child: Icon(
-                          _isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: _isFavorite ? Colors.red : Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                    onPressed: _toggleFavorite,
-                  ),
-                ],
-              );
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
+              shape: BoxShape.circle,
+            ),
+            child: AnimatedFavoriteButton(
+              isFavorite: _isFavorite,
+              onToggle: _toggleFavorite,
+              size: 24,
+              favoriteColor: Colors.red,
+              notFavoriteColor: Colors.white,
+              showParticles: true,
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Container(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../services/jikan_api_service.dart';
+import '../widgets/shimmer_widgets.dart';
 
 class MagazinesPage extends StatefulWidget {
   const MagazinesPage({super.key});
@@ -48,11 +49,14 @@ class _MagazinesPageState extends State<MagazinesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = ResponsiveHelper.isDesktop(context);
+    final crossAxisCount = isDesktop ? 4 : 2;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          'Magazines',
+          'Manga Magazines',
           style: TextStyle(
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.white
@@ -62,6 +66,7 @@ class _MagazinesPageState extends State<MagazinesPage> {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
         iconTheme: IconThemeData(
           color: Theme.of(context).brightness == Brightness.dark
               ? Colors.white
@@ -71,76 +76,285 @@ class _MagazinesPageState extends State<MagazinesPage> {
       body: Container(
         decoration: AppColors.themedPrimaryGradient(context),
         child: _isLoading
-            ? Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              )
+            ? _buildLoadingState(crossAxisCount)
             : _errorMessage != null
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white70
-                            : Colors.black54,
-                        fontSize: 16,
-                      ),
+            ? _buildErrorState()
+            : _magazines.isEmpty
+            ? _buildEmptyState()
+            : _buildMagazinesGrid(crossAxisCount),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(int crossAxisCount) {
+    return GridView.builder(
+      padding: EdgeInsets.only(
+        top: ResponsiveHelper.isDesktop(context) ? 100 : 80,
+        left: ResponsiveHelper.getResponsivePadding(context).left,
+        right: ResponsiveHelper.getResponsivePadding(context).right,
+        bottom: ResponsiveHelper.getResponsivePadding(context).bottom,
+      ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: 12,
+      itemBuilder: (context, index) {
+        return ShimmerWidgets.magazineCard();
+      },
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white54
+                  : Colors.black38,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : Colors.black54,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadMagazines,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.library_books_outlined,
+              size: 64,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white54
+                  : Colors.black38,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No magazines available',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : Colors.black54,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMagazinesGrid(int crossAxisCount) {
+    return GridView.builder(
+      padding: EdgeInsets.only(
+        top: ResponsiveHelper.isDesktop(context) ? 100 : 80,
+        left: ResponsiveHelper.getResponsivePadding(context).left,
+        right: ResponsiveHelper.getResponsivePadding(context).right,
+        bottom: ResponsiveHelper.getResponsivePadding(context).bottom,
+      ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: _magazines.length,
+      itemBuilder: (context, index) {
+        final magazine = _magazines[index];
+        return _MagazineCard(magazine: magazine);
+      },
+    );
+  }
+}
+
+class _MagazineCard extends StatelessWidget {
+  final Map<String, dynamic> magazine;
+
+  const _MagazineCard({required this.magazine});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final name = magazine['name'] ?? 'Unknown Magazine';
+    final count = magazine['count'];
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF2D3748), const Color(0xFF1A202C)]
+              : [Colors.white, Colors.grey.shade50],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            // Could navigate to magazine details or show more info
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$name - More details coming soon!'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Magazine icon
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _loadMagazines,
-                      child: const Text('Retry'),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.menu_book_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Magazine name
+                Expanded(
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.black87,
+                      height: 1.3,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Divider
+                Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        (isDark ? Colors.white : Colors.black).withOpacity(0.1),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Count and arrow
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (count != null)
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.article_outlined,
+                              size: 16,
+                              color: isDark ? Colors.white60 : Colors.black54,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                '$count entries',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark
+                                      ? Colors.white60
+                                      : Colors.black54,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ],
                 ),
-              )
-            : ListView.separated(
-                padding: EdgeInsets.only(
-                  top: ResponsiveHelper.isDesktop(context) ? 100 : 80,
-                  left: ResponsiveHelper.getResponsivePadding(context).left,
-                  right: ResponsiveHelper.getResponsivePadding(context).right,
-                  bottom: ResponsiveHelper.getResponsivePadding(context).bottom,
-                ),
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemCount: _magazines.length,
-                itemBuilder: (context, index) {
-                  final magazine = _magazines[index];
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.3)),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      title: Text(
-                        magazine['name'] ?? 'Unknown Magazine',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                      subtitle: magazine['count'] != null
-                          ? Text(
-                              '${magazine['count']} entries',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            )
-                          : null,
-                      trailing: Icon(
-                        Icons.chevron_right,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  );
-                },
-              ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

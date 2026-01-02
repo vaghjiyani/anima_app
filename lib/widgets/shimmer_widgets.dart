@@ -281,3 +281,114 @@ class ListShimmer extends StatelessWidget {
     );
   }
 }
+
+/// Utility class for creating shimmer loading placeholders
+class ShimmerWidgets {
+  ShimmerWidgets._(); // Private constructor to prevent instantiation
+
+  /// Shimmer loading placeholder for magazine cards
+  static Widget magazineCard() {
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        return Shimmer.fromColors(
+          baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+          highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Magazine icon placeholder
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Magazine name placeholder
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 18,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 18,
+                          width: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Divider placeholder
+                  Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Count placeholder
+                  Container(
+                    height: 16,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Shimmer loading placeholder for anime cards
+  static Widget animeCard() {
+    return const AnimeCardShimmer();
+  }
+
+  /// Shimmer loading placeholder for anime grid items
+  static Widget animeGrid({int itemCount = 6}) {
+    return AnimeGridShimmer(itemCount: itemCount);
+  }
+
+  /// Shimmer loading placeholder for detail page
+  static Widget detailPage() {
+    return const DetailPageShimmer();
+  }
+
+  /// Shimmer loading placeholder for list items
+  static Widget list({int itemCount = 5}) {
+    return ListShimmer(itemCount: itemCount);
+  }
+}

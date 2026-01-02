@@ -5,12 +5,84 @@ import '../models/anime.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/shimmer_widgets.dart';
+import '../widgets/animated_favorite_button.dart';
 import 'anime_detail_page.dart';
 import 'home_page.dart';
 import 'search_page.dart';
 
-class FavoritesPage extends StatelessWidget {
+class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
+
+  @override
+  State<FavoritesPage> createState() => _FavoritesPageState();
+}
+
+class _FavoritesPageState extends State<FavoritesPage> {
+  final Map<int, bool> _removingItems = {};
+
+  void _handleRemoveFavorite(BuildContext context, Anime anime) async {
+    // Start animation immediately
+    setState(() {
+      _removingItems[anime.malId] = true;
+    });
+
+    try {
+      // Remove from Firebase first
+      await FavoritesService.removeFromFavorites(anime.malId);
+
+      // Wait a bit for the animation to complete before showing snackbar
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.favorite_border,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Removed "${anime.title}" from favorites'),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.grey.shade800,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            action: SnackBarAction(
+              label: 'UNDO',
+              textColor: Colors.white,
+              onPressed: () async {
+                await FavoritesService.addToFavorites(anime);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Reset the removing state on error
+      if (mounted) {
+        setState(() {
+          _removingItems.remove(anime.malId);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove favorite: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,101 +217,112 @@ class FavoritesPage extends StatelessWidget {
                 itemCount: favorites.length,
                 itemBuilder: (context, index) {
                   final anime = favorites[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => AnimeDetailPage(anime: anime),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(12),
-                              ),
-                              child: anime.imageUrl != null
-                                  ? CachedNetworkImage(
-                                      imageUrl: anime.imageUrl!,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      placeholder: (context, url) =>
-                                          const Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                      errorWidget: (context, url, error) =>
-                                          const Icon(Icons.error),
-                                    )
-                                  : const Icon(Icons.image_not_supported),
+                  final isRemoving = _removingItems[anime.malId] ?? false;
+
+                  return AnimatedScale(
+                    scale: isRemoving ? 0.8 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                    child: AnimatedOpacity(
+                      opacity: isRemoving ? 0.0 : 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AnimeDetailPage(anime: anime),
                             ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white.withOpacity(0.9),
                           ),
-                          Expanded(
-                            flex: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    anime.title,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(12),
                                   ),
-                                  const Spacer(),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      if (anime.score != null)
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.star,
-                                              size: 16,
-                                              color: Colors.amber,
-                                            ),
-                                            Text(
-                                              anime.scoreString,
-                                              style: const TextStyle(
-                                                fontSize: 12,
+                                  child: anime.imageUrl != null
+                                      ? CachedNetworkImage(
+                                          imageUrl: anime.imageUrl!,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          placeholder: (context, url) =>
+                                              const Center(
+                                                child:
+                                                    CircularProgressIndicator(),
                                               ),
+                                          errorWidget: (context, url, error) =>
+                                              const Icon(Icons.error),
+                                        )
+                                      : const Icon(Icons.image_not_supported),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        anime.title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const Spacer(),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          if (anime.score != null)
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.star,
+                                                  size: 16,
+                                                  color: Colors.amber,
+                                                ),
+                                                Text(
+                                                  anime.scoreString,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.favorite,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () async {
-                                          await FavoritesService.removeFromFavorites(
-                                            anime.malId,
-                                          );
-                                        },
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
+                                          AnimatedFavoriteButton(
+                                            isFavorite: true,
+                                            onToggle: () =>
+                                                _handleRemoveFavorite(
+                                                  context,
+                                                  anime,
+                                                ),
+                                            size: 20,
+                                            favoriteColor: Colors.red,
+                                            showParticles: false,
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   );

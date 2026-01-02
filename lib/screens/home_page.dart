@@ -91,11 +91,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadAnimeData() async {
-    await Future.wait([
-      _loadTrendingAnime(),
-      _loadSeasonalAnime(),
-      _loadTopAnime(),
-    ]);
+    // Load sequentially to avoid rate limiting
+    await _loadTrendingAnime();
+    await _loadSeasonalAnime();
+    await _loadTopAnime();
   }
 
   Future<void> _loadTrendingAnime() async {

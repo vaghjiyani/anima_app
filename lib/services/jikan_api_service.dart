@@ -1,50 +1,34 @@
-import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import '../models/anime.dart';
+import '../models/api_exceptions.dart';
+import 'dio_client.dart';
 
 class JikanApiService {
-  static const String _baseUrl = 'https://api.jikan.moe/v4';
-
-  // Rate limiting: Jikan API has a rate limit of 3 requests per second
-  static DateTime? _lastRequestTime;
-  static const Duration _minRequestInterval = Duration(milliseconds: 350);
-
-  // Helper method to respect rate limiting
-  static Future<void> _respectRateLimit() async {
-    if (_lastRequestTime != null) {
-      final timeSinceLastRequest = DateTime.now().difference(_lastRequestTime!);
-      if (timeSinceLastRequest < _minRequestInterval) {
-        await Future.delayed(_minRequestInterval - timeSinceLastRequest);
-      }
-    }
-    _lastRequestTime = DateTime.now();
-  }
+  // Get Dio client instance
+  static final _dio = DioClient.instance;
 
   // Get top anime
   static Future<List<Anime>> getTopAnime({int page = 1, int limit = 25}) async {
-    await _respectRateLimit();
-
     try {
-      final url = '$_baseUrl/top/anime?page=$page&limit=$limit';
-      debugPrint('📡 API Request: $url');
-
-      final response = await http.get(Uri.parse(url));
-
-      debugPrint('📥 API Response Status: ${response.statusCode}');
-      debugPrint('📥 API Response Body Length: ${response.body.length}');
+      final response = await _dio.get(
+        '/top/anime',
+        queryParameters: {'page': page, 'limit': limit},
+      );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> animeList = data['data'] ?? [];
-        debugPrint('📊 Parsed ${animeList.length} anime from API');
+        final List<dynamic> animeList = response.data['data'] ?? [];
         return animeList.map((json) => Anime.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load top anime: ${response.statusCode}');
+        throw ClientException(
+          message: 'Failed to load top anime',
+          statusCode: response.statusCode,
+        );
       }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      debugPrint('💥 Exception in getTopAnime: $e');
-      throw Exception('Error fetching top anime: $e');
+      throw ApiException(message: 'Error fetching top anime: $e');
     }
   }
 
@@ -54,28 +38,29 @@ class JikanApiService {
     String? season,
     int page = 1,
   }) async {
-    await _respectRateLimit();
-
     try {
       final now = DateTime.now();
       final currentYear = year ?? now.year;
       final currentSeason = season ?? _getCurrentSeason(now.month);
 
-      final response = await http.get(
-        Uri.parse('$_baseUrl/seasons/$currentYear/$currentSeason?page=$page'),
+      final response = await _dio.get(
+        '/seasons/$currentYear/$currentSeason',
+        queryParameters: {'page': page},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> animeList = data['data'] ?? [];
+        final List<dynamic> animeList = response.data['data'] ?? [];
         return animeList.map((json) => Anime.fromJson(json)).toList();
       } else {
-        throw Exception(
-          'Failed to load seasonal anime: ${response.statusCode}',
+        throw ClientException(
+          message: 'Failed to load seasonal anime',
+          statusCode: response.statusCode,
         );
       }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      throw Exception('Error fetching seasonal anime: $e');
+      throw ApiException(message: 'Error fetching seasonal anime: $e');
     }
   }
 
@@ -89,8 +74,6 @@ class JikanApiService {
     double? minScore,
     String? genre,
   }) async {
-    await _respectRateLimit();
-
     try {
       if (query.trim().isEmpty) {
         return [];
@@ -98,67 +81,73 @@ class JikanApiService {
 
       final queryParams = {
         'q': query,
-        'page': page.toString(),
-        'limit': limit.toString(),
+        'page': page,
+        'limit': limit,
         if (type != null) 'type': type,
         if (status != null) 'status': status,
-        if (minScore != null) 'min_score': minScore.toString(),
+        if (minScore != null) 'min_score': minScore,
         if (genre != null) 'genres': genre,
       };
 
-      final uri = Uri.parse(
-        '$_baseUrl/anime',
-      ).replace(queryParameters: queryParams);
-      final response = await http.get(uri);
+      final response = await _dio.get('/anime', queryParameters: queryParams);
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> animeList = data['data'] ?? [];
+        final List<dynamic> animeList = response.data['data'] ?? [];
         return animeList.map((json) => Anime.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to search anime: ${response.statusCode}');
+        throw ClientException(
+          message: 'Failed to search anime',
+          statusCode: response.statusCode,
+        );
       }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      throw Exception('Error searching anime: $e');
+      throw ApiException(message: 'Error searching anime: $e');
     }
   }
 
   // Get top manga
   static Future<List<Anime>> getTopManga({int page = 1, int limit = 25}) async {
-    await _respectRateLimit();
-
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/top/manga?page=$page&limit=$limit'),
+      final response = await _dio.get(
+        '/top/manga',
+        queryParameters: {'page': page, 'limit': limit},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> mangaList = data['data'] ?? [];
+        final List<dynamic> mangaList = response.data['data'] ?? [];
         return mangaList.map((json) => Anime.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load top manga: ${response.statusCode}');
+        throw ClientException(
+          message: 'Failed to load top manga',
+          statusCode: response.statusCode,
+        );
       }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      throw Exception('Error fetching top manga: $e');
+      throw ApiException(message: 'Error fetching top manga: $e');
     }
   }
 
   // Get anime by ID
   static Future<Anime> getAnimeById(int id) async {
-    await _respectRateLimit();
-
     try {
-      final response = await http.get(Uri.parse('$_baseUrl/anime/$id'));
+      final response = await _dio.get('/anime/$id');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return Anime.fromJson(data['data']);
+        return Anime.fromJson(response.data['data']);
       } else {
-        throw Exception('Failed to load anime details: ${response.statusCode}');
+        throw ClientException(
+          message: 'Failed to load anime details',
+          statusCode: response.statusCode,
+        );
       }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      throw Exception('Error fetching anime details: $e');
+      throw ApiException(message: 'Error fetching anime details: $e');
     }
   }
 
@@ -166,37 +155,35 @@ class JikanApiService {
   static Future<List<Map<String, dynamic>>> getAnimeEpisodes(
     int animeId,
   ) async {
-    await _respectRateLimit();
-
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/anime/$animeId/episodes'),
-      );
+      final response = await _dio.get('/anime/$animeId/episodes');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> episodesList = data['data'] ?? [];
+        final List<dynamic> episodesList = response.data['data'] ?? [];
         return episodesList.cast<Map<String, dynamic>>();
       } else {
-        throw Exception('Failed to load episodes: ${response.statusCode}');
+        throw ClientException(
+          message: 'Failed to load episodes',
+          statusCode: response.statusCode,
+        );
       }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      throw Exception('Error fetching episodes: $e');
+      throw ApiException(message: 'Error fetching episodes: $e');
     }
   }
 
   // Get anime recommendations
   static Future<List<Anime>> getRecommendations({int page = 1}) async {
-    await _respectRateLimit();
-
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/recommendations/anime?page=$page'),
+      final response = await _dio.get(
+        '/recommendations/anime',
+        queryParameters: {'page': page},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> recommendations = data['data'] ?? [];
+        final List<dynamic> recommendations = response.data['data'] ?? [];
 
         // Extract anime from recommendations
         final List<Anime> animeList = [];
@@ -215,12 +202,15 @@ class JikanApiService {
 
         return animeList.take(25).toList();
       } else {
-        throw Exception(
-          'Failed to load recommendations: ${response.statusCode}',
+        throw ClientException(
+          message: 'Failed to load recommendations',
+          statusCode: response.statusCode,
         );
       }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      throw Exception('Error fetching recommendations: $e');
+      throw ApiException(message: 'Error fetching recommendations: $e');
     }
   }
 
@@ -229,24 +219,49 @@ class JikanApiService {
     required int genreId,
     int page = 1,
   }) async {
-    await _respectRateLimit();
-
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/anime?genres=$genreId&page=$page'),
+      final response = await _dio.get(
+        '/anime',
+        queryParameters: {'genres': genreId, 'page': page},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> animeList = data['data'] ?? [];
+        final List<dynamic> animeList = response.data['data'] ?? [];
         return animeList.map((json) => Anime.fromJson(json)).toList();
       } else {
-        throw Exception(
-          'Failed to load anime by genre: ${response.statusCode}',
+        throw ClientException(
+          message: 'Failed to load anime by genre',
+          statusCode: response.statusCode,
         );
       }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     } catch (e) {
-      throw Exception('Error fetching anime by genre: $e');
+      throw ApiException(message: 'Error fetching anime by genre: $e');
+    }
+  }
+
+  // Get magazines
+  static Future<List<Map<String, dynamic>>> getMagazines({int page = 1}) async {
+    try {
+      final response = await _dio.get(
+        '/magazines',
+        queryParameters: {'page': page},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> magazinesList = response.data['data'] ?? [];
+        return magazinesList.cast<Map<String, dynamic>>();
+      } else {
+        throw ClientException(
+          message: 'Failed to load magazines',
+          statusCode: response.statusCode,
+        );
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw ApiException(message: 'Error fetching magazines: $e');
     }
   }
 
@@ -258,24 +273,46 @@ class JikanApiService {
     return 'fall';
   }
 
-  // Get magazines
-  static Future<List<Map<String, dynamic>>> getMagazines({int page = 1}) async {
-    await _respectRateLimit();
+  // Helper method to handle Dio errors
+  static ApiException _handleDioError(DioException error) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return TimeoutException();
 
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/magazines?page=$page'),
-      );
+      case DioExceptionType.connectionError:
+        return NetworkException();
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> magazinesList = data['data'] ?? [];
-        return magazinesList.cast<Map<String, dynamic>>();
-      } else {
-        throw Exception('Failed to load magazines: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching magazines: $e');
+      case DioExceptionType.badResponse:
+        final statusCode = error.response?.statusCode;
+        if (statusCode != null) {
+          if (statusCode == 429) {
+            return RateLimitException();
+          } else if (statusCode >= 500) {
+            return ServerException(
+              statusCode: statusCode,
+              data: error.response?.data,
+            );
+          } else if (statusCode >= 400) {
+            return ClientException(
+              message: error.response?.data?['message'] ?? 'Client error',
+              statusCode: statusCode,
+              data: error.response?.data,
+            );
+          }
+        }
+        return ServerException(message: error.message, statusCode: statusCode);
+
+      case DioExceptionType.cancel:
+        return ApiException(message: 'Request cancelled');
+
+      case DioExceptionType.badCertificate:
+        return ApiException(message: 'Bad certificate');
+
+      case DioExceptionType.unknown:
+      default:
+        return ApiException(message: error.message ?? 'Unknown error occurred');
     }
   }
 
