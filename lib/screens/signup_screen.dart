@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
+import '../widgets/animated_error_message.dart';
 import 'signin_screen.dart';
 import 'home_page.dart';
 
@@ -20,6 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -170,6 +172,17 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
 
                       const SizedBox(height: 20),
+
+                      // Error message
+                      if (_errorMessage != null)
+                        AnimatedErrorMessage(
+                          message: _errorMessage!,
+                          onDismiss: () {
+                            setState(() {
+                              _errorMessage = null;
+                            });
+                          },
+                        ),
 
                       // Email field
                       _buildTextField(

@@ -1,15 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
+import 'providers/anime_provider.dart';
+import 'providers/favorites_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/search_provider.dart';
 
 final GlobalKey<MyAppState> appKey = GlobalKey<MyAppState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(MyApp(key: appKey));
+
+  // Initialize providers
+  final animeProvider = AnimeProvider();
+  final favoritesProvider = FavoritesProvider();
+  final themeProvider = ThemeProvider();
+  final searchProvider = SearchProvider();
+
+  // Load initial data
+  await Future.wait([
+    favoritesProvider.loadFavorites(),
+    themeProvider.loadThemeMode(),
+  ]);
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: animeProvider),
+        ChangeNotifierProvider.value(value: favoritesProvider),
+        ChangeNotifierProvider.value(value: themeProvider),
+        ChangeNotifierProvider.value(value: searchProvider),
+      ],
+      child: MyApp(key: appKey),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -20,49 +47,21 @@ class MyApp extends StatefulWidget {
 }
 
 class MyAppState extends State<MyApp> {
-  static const String _themeModeKey = 'theme_mode';
-  ThemeMode _themeMode = ThemeMode.system;
-
   @override
   void initState() {
     super.initState();
-    _loadThemeMode();
-  }
-
-  Future<void> _loadThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_themeModeKey);
-    setState(() {
-      switch (value) {
-        case 'light':
-          _themeMode = ThemeMode.light;
-          break;
-        case 'dark':
-          _themeMode = ThemeMode.dark;
-          break;
-        default:
-          _themeMode = ThemeMode.system;
-      }
-    });
-  }
-
-  Future<void> _setThemeMode(ThemeMode mode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _themeModeKey,
-      mode == ThemeMode.light
-          ? 'light'
-          : mode == ThemeMode.dark
-          ? 'dark'
-          : 'system',
-    );
-    setState(() {
-      _themeMode = mode;
+    // Load anime data when app starts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final animeProvider = Provider.of<AnimeProvider>(context, listen: false);
+      animeProvider.loadAllAnime();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get theme mode from ThemeProvider
+    final themeMode = context.watch<ThemeProvider>().themeMode;
+
     // Light theme uses vibrant pink
     final ThemeData light = ThemeData(
       useMaterial3: true,
@@ -112,15 +111,17 @@ class MyAppState extends State<MyApp> {
       title: 'Anima App',
       theme: light,
       darkTheme: dark,
-      themeMode: _themeMode,
+      themeMode: themeMode,
       home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 
+  // Helper method for pages that still use the old API
   void setThemeMode(ThemeMode mode) {
-    _setThemeMode(mode);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    themeProvider.setThemeMode(mode);
   }
 
-  ThemeMode get themeMode => _themeMode;
+  ThemeMode get themeMode => context.read<ThemeProvider>().themeMode;
 }

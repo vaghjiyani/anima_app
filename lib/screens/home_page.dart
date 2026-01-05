@@ -2,19 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import '../main.dart';
 import '../widgets/app_sidebar.dart';
-import '../services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../providers/anime_provider.dart';
+import '../providers/search_provider.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
-import '../widgets/shimmer_widgets.dart';
 import 'profile_page.dart';
 import 'top_anime_page.dart';
 import 'manga_page.dart';
 import 'magazines_page.dart';
 import 'search_page.dart';
 import 'favorites_page.dart';
-import '../services/jikan_api_service.dart';
+import 'genre_anime_page.dart';
 import '../models/anime.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'anime_detail_page.dart';
@@ -31,19 +32,6 @@ class _HomePageState extends State<HomePage> {
   File? _profileImageFile;
   static const String _profileImagePathKey = 'profile_image_path';
   int _selectedIndex = 0;
-
-  // API data
-  List<Anime> _trendingAnime = [];
-  List<Anime> _seasonalAnime = [];
-  List<Anime> _topAnime = [];
-  List<Anime> _searchResults = [];
-
-  bool _isLoadingTrending = true;
-  bool _isLoadingSeasonal = true;
-  bool _isLoadingTop = true;
-  bool _isSearching = false;
-
-  String? _errorMessage;
 
   void _onBottomNavTapped(int index) {
     if (index == 1) {
@@ -67,7 +55,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -76,130 +63,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadSavedProfileImage();
-    _loadAnimeData();
-    _searchController.addListener(_onSearchChanged);
-  }
-
-  void _onSearchChanged() {
-    final query = _searchController.text.trim();
-    if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-    }
-  }
-
-  Future<void> _loadAnimeData() async {
-    // Load sequentially to avoid rate limiting
-    await _loadTrendingAnime();
-    await _loadSeasonalAnime();
-    await _loadTopAnime();
-  }
-
-  Future<void> _loadTrendingAnime() async {
-    try {
-      setState(() {
-        _isLoadingTrending = true;
-        _errorMessage = null;
-      });
-
-      final anime = await JikanApiService.getSeasonalAnime(page: 1);
-
-      if (mounted) {
-        setState(() {
-          _trendingAnime = anime.take(10).toList();
-          _isLoadingTrending = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Failed to load trending anime';
-          _isLoadingTrending = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _loadSeasonalAnime() async {
-    try {
-      setState(() {
-        _isLoadingSeasonal = true;
-      });
-
-      final anime = await JikanApiService.getSeasonalAnime(page: 1);
-
-      if (mounted) {
-        setState(() {
-          _seasonalAnime = anime.take(10).toList();
-          _isLoadingSeasonal = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingSeasonal = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _loadTopAnime() async {
-    try {
-      setState(() {
-        _isLoadingTop = true;
-      });
-
-      final anime = await JikanApiService.getTopAnime(page: 1, limit: 10);
-
-      if (mounted) {
-        setState(() {
-          _topAnime = anime;
-          _isLoadingTop = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingTop = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _performSearch(String query) async {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-      return;
-    }
-
-    try {
-      setState(() {
-        _isSearching = true;
-      });
-
-      final results = await JikanApiService.searchAnime(
-        query: query,
-        limit: 20,
-      );
-
-      if (mounted) {
-        setState(() {
-          _searchResults = results;
-          _isSearching = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-        });
-      }
-    }
+    // Anime data is loaded by AnimeProvider in main.dart
   }
 
   Future<void> _loadSavedProfileImage() async {
@@ -217,20 +81,60 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Use seasonal anime for featured banners
-    final List<Anime> featuredAnime = _seasonalAnime.take(10).toList();
+    return Consumer<AnimeProvider>(
+      builder: (context, animeProvider, child) {
+        return Consumer<SearchProvider>(
+          builder: (context, searchProvider, _) {
+            // Use seasonal anime for featured banners
+            final List<Anime> featuredAnime = animeProvider.seasonalAnime
+                .take(10)
+                .toList();
 
-    final List<String> categories = const [
-      'Action',
-      'Romance',
-      'Fantasy',
-      'Comedy',
-      'Sci-Fi',
-      'Adventure',
-      'Drama',
-      'Slice of Life',
-    ];
+            final List<String> categories = const [
+              'Action',
+              'Romance',
+              'Fantasy',
+              'Comedy',
+              'Sci-Fi',
+              'Adventure',
+              'Drama',
+              'Slice of Life',
+            ];
 
+            // Genre ID mapping based on MyAnimeList/Jikan API
+            final Map<String, int> genreIds = {
+              'Action': 1,
+              'Romance': 22,
+              'Fantasy': 10,
+              'Comedy': 4,
+              'Sci-Fi': 24,
+              'Adventure': 2,
+              'Drama': 8,
+              'Slice of Life': 36,
+            };
+
+            return _buildScaffold(
+              context,
+              animeProvider,
+              searchProvider,
+              featuredAnime,
+              categories,
+              genreIds,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildScaffold(
+    BuildContext context,
+    AnimeProvider animeProvider,
+    SearchProvider searchProvider,
+    List<Anime> featuredAnime,
+    List<String> categories,
+    Map<String, int> genreIds,
+  ) {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -318,20 +222,21 @@ class _HomePageState extends State<HomePage> {
                     ),
                     _SearchBar(
                       controller: _searchController,
-                      onSubmitted: _performSearch,
+                      onSubmitted: searchProvider.searchAnime,
                     ),
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
                     ),
 
                     // Search Results Section
-                    if (_isSearching || _searchResults.isNotEmpty) ...[
+                    if (searchProvider.isSearching ||
+                        searchProvider.searchResults.isNotEmpty) ...[
                       _SectionHeader(title: 'Search Results'),
                       SizedBox(
                         height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
                       ),
 
-                      if (_isSearching)
+                      if (searchProvider.isSearching)
                         SizedBox(
                           height: 200,
                           child: Center(
@@ -340,7 +245,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         )
-                      else if (_searchResults.isEmpty)
+                      else if (searchProvider.searchResults.isEmpty)
                         Container(
                           padding: EdgeInsets.all(
                             ResponsiveHelper.isDesktop(context) ? 32 : 24,
@@ -370,10 +275,10 @@ class _HomePageState extends State<HomePage> {
                           padding: ResponsiveHelper.getResponsivePadding(
                             context,
                           ),
-                          itemCount: _searchResults.length,
+                          itemCount: searchProvider.searchResults.length,
                           itemBuilder: (context, index) {
                             return _SearchResultTile(
-                              anime: _searchResults[index],
+                              anime: searchProvider.searchResults[index],
                             );
                           },
                         ),
@@ -384,7 +289,7 @@ class _HomePageState extends State<HomePage> {
                     ],
 
                     _SectionHeader(title: 'Featured'),
-                    _isLoadingSeasonal
+                    animeProvider.isLoadingSeasonal
                         ? SizedBox(
                             height: ResponsiveHelper.getBannerHeight(context),
                             child: Center(
@@ -505,8 +410,20 @@ class _HomePageState extends State<HomePage> {
                                       : 8,
                                 ),
                                 itemBuilder: (context, index) {
+                                  final category = categories[index];
                                   return _CategoryChip(
-                                    label: categories[index],
+                                    label: category,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => GenreAnimePage(
+                                            genreName: category,
+                                            genreId: genreIds[category]!,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               ),
@@ -519,7 +436,7 @@ class _HomePageState extends State<HomePage> {
                       height: ResponsiveHelper.isDesktop(context) ? 24 : 16,
                     ),
                     _SectionHeader(title: 'Trending Now'),
-                    _isLoadingTrending
+                    animeProvider.isLoadingTrending
                         ? SizedBox(
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
@@ -530,7 +447,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                           )
-                        : _trendingAnime.isEmpty
+                        : animeProvider.trendingAnime.isEmpty
                         ? SizedBox(
                             height: 100,
                             child: Center(
@@ -567,12 +484,18 @@ class _HomePageState extends State<HomePage> {
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
                                 shrinkWrap: true,
-                                itemCount: _trendingAnime.length,
+                                itemCount: animeProvider.trendingAnime.length,
                                 itemBuilder: (context, index) {
-                                  final anime = _trendingAnime[index];
+                                  final anime =
+                                      animeProvider.trendingAnime[index];
                                   return Padding(
                                     padding: EdgeInsets.only(
-                                      right: index < _trendingAnime.length - 1
+                                      right:
+                                          index <
+                                              animeProvider
+                                                      .trendingAnime
+                                                      .length -
+                                                  1
                                           ? ResponsiveHelper.isDesktop(context)
                                                 ? 16
                                                 : 12
@@ -601,7 +524,7 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                    _isLoadingTop
+                    animeProvider.isLoadingTop
                         ? SizedBox(
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
@@ -633,12 +556,14 @@ class _HomePageState extends State<HomePage> {
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
                                 shrinkWrap: true,
-                                itemCount: _topAnime.length,
+                                itemCount: animeProvider.topAnime.length,
                                 itemBuilder: (context, index) {
-                                  final anime = _topAnime[index];
+                                  final anime = animeProvider.topAnime[index];
                                   return Padding(
                                     padding: EdgeInsets.only(
-                                      right: index < _topAnime.length - 1
+                                      right:
+                                          index <
+                                              animeProvider.topAnime.length - 1
                                           ? 12
                                           : 0,
                                     ),
@@ -663,7 +588,7 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                    _isLoadingSeasonal
+                    animeProvider.isLoadingSeasonal
                         ? SizedBox(
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
@@ -695,12 +620,18 @@ class _HomePageState extends State<HomePage> {
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
                                 shrinkWrap: true,
-                                itemCount: _seasonalAnime.length,
+                                itemCount: animeProvider.seasonalAnime.length,
                                 itemBuilder: (context, index) {
-                                  final anime = _seasonalAnime[index];
+                                  final anime =
+                                      animeProvider.seasonalAnime[index];
                                   return Padding(
                                     padding: EdgeInsets.only(
-                                      right: index < _seasonalAnime.length - 1
+                                      right:
+                                          index <
+                                              animeProvider
+                                                      .seasonalAnime
+                                                      .length -
+                                                  1
                                           ? 12
                                           : 0,
                                     ),
@@ -727,7 +658,7 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                     ),
-                    _isLoadingTop
+                    animeProvider.isLoadingTop
                         ? SizedBox(
                             height: ResponsiveHelper.getAnimeCardHeight(
                               context,
@@ -759,9 +690,11 @@ class _HomePageState extends State<HomePage> {
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
                                 shrinkWrap: true,
-                                itemCount: _topAnime.take(5).length,
+                                itemCount: animeProvider.topAnime
+                                    .take(5)
+                                    .length,
                                 itemBuilder: (context, index) {
-                                  final anime = _topAnime[index];
+                                  final anime = animeProvider.topAnime[index];
                                   return Padding(
                                     padding: EdgeInsets.only(
                                       right: index < 4 ? 12 : 0,
@@ -778,7 +711,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     _SearchBar(
                       controller: _searchController,
-                      onSubmitted: _performSearch,
+                      onSubmitted: searchProvider.searchAnime,
                     ),
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 16 : 12,
@@ -787,13 +720,13 @@ class _HomePageState extends State<HomePage> {
                     SizedBox(
                       height: ResponsiveHelper.isDesktop(context) ? 12 : 8,
                     ),
-                    if (_isSearching)
+                    if (searchProvider.isSearching)
                       Center(
                         child: CircularProgressIndicator(
                           color: Theme.of(context).colorScheme.primary,
                         ),
                       )
-                    else if (_searchResults.isEmpty)
+                    else if (searchProvider.searchResults.isEmpty)
                       Padding(
                         padding: ResponsiveHelper.getResponsivePadding(context),
                         child: Text(
@@ -815,12 +748,14 @@ class _HomePageState extends State<HomePage> {
                         padding: ResponsiveHelper.getResponsivePadding(context),
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
-                        itemCount: _searchResults.length,
+                        itemCount: searchProvider.searchResults.length,
                         itemBuilder: (context, index) {
-                          final anime = _searchResults[index];
+                          final anime = searchProvider.searchResults[index];
                           return Padding(
                             padding: EdgeInsets.only(
-                              bottom: index < _searchResults.length - 1
+                              bottom:
+                                  index <
+                                      searchProvider.searchResults.length - 1
                                   ? 12
                                   : 0,
                             ),
@@ -1009,36 +944,40 @@ class _BannerCard extends StatelessWidget {
 }
 
 class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.label});
+  const _CategoryChip({required this.label, this.onTap});
 
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: ResponsiveHelper.isDesktop(context) ? 20 : 16,
-        vertical: ResponsiveHelper.isDesktop(context) ? 14 : 12,
-      ),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF66bb6a), Color(0xFF43a047)],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveHelper.isDesktop(context) ? 20 : 16,
+          vertical: ResponsiveHelper.isDesktop(context) ? 14 : 12,
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF66bb6a), Color(0xFF43a047)],
           ),
-        ],
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-          fontSize: ResponsiveHelper.getResponsiveFontSize(context, 15),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 15),
+          ),
         ),
       ),
     );

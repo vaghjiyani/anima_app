@@ -131,7 +131,7 @@ class RetryInterceptor extends Interceptor {
   }
 }
 
-/// Rate limit interceptor for Jikan API (2 requests per second to be safe)
+/// Rate limit interceptor for Jikan API (2 requests per second - safe limit)
 class RateLimitInterceptor extends Interceptor {
   static DateTime? _lastRequestTime;
   static const Duration _minRequestInterval = Duration(milliseconds: 500);

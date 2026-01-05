@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
 import '../services/auth_service.dart';
+import '../widgets/animated_error_message.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 import 'home_page.dart';
@@ -24,6 +25,7 @@ class _SigninScreenState extends State<SigninScreen>
 
   bool _isLoading = false;
   bool _showSuccessMessage = false;
+  String? _errorMessage;
   late AnimationController _successAnimationController;
   late Animation<double> _successAnimation;
 
@@ -127,9 +129,9 @@ class _SigninScreenState extends State<SigninScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-        );
+        setState(() {
+          _errorMessage = e.toString();
+        });
       }
     } finally {
       if (mounted) {
@@ -301,6 +303,17 @@ class _SigninScreenState extends State<SigninScreen>
                                 ],
                               ),
                             ),
+                          ),
+
+                        // Error message
+                        if (_errorMessage != null)
+                          AnimatedErrorMessage(
+                            message: _errorMessage!,
+                            onDismiss: () {
+                              setState(() {
+                                _errorMessage = null;
+                              });
+                            },
                           ),
 
                         // Email field
