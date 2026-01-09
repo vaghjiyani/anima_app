@@ -196,7 +196,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: AppColors.primaryGradientDecoration,
+        decoration: AppColors.themedPrimaryGradient(context),
         child: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -217,55 +217,73 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Center(
-                              child: const Text(
+                              child: Text(
                                 'Forgot Password',
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Enter your email address to receive a password reset link',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.black54,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.7),
                               ),
                             ),
                             const SizedBox(height: 20),
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              style: const TextStyle(color: Colors.black),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Enter your email address',
                                 hintStyle: TextStyle(
-                                  color: Colors.black.withValues(alpha: 0.6),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.5),
                                 ),
-                                prefixIcon: const Icon(
+                                prefixIcon: Icon(
                                   Icons.email_outlined,
-                                  color: Colors.black54,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                                 filled: true,
-                                fillColor: Colors.white.withValues(alpha: 0.8),
+                                fillColor: Theme.of(
+                                  context,
+                                ).colorScheme.surface.withOpacity(0.8),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide(
-                                    color: Colors.black.withValues(alpha: 0.3),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.3),
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide(
-                                    color: Colors.black.withValues(alpha: 0.3),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.3),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide(
-                                    color: Colors.green[400]!,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                     width: 2,
                                   ),
                                 ),
@@ -284,7 +302,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                 child: ElevatedButton(
                                   onPressed: _isLoading ? null : _onContinue,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green[400],
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(28),

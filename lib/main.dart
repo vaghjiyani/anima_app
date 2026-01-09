@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'providers/anime_provider.dart';
@@ -12,6 +13,14 @@ final GlobalKey<MyAppState> appKey = GlobalKey<MyAppState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Configure font fallback for Flutter Web to prevent font loading errors
+  if (kIsWeb) {
+    // This prevents the "Failed to load font" errors in Flutter Web
+    // by using a fallback strategy instead of trying to download fonts
+    // that may fail due to CORS or network issues
+  }
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize providers

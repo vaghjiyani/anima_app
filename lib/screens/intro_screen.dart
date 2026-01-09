@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../utils/app_colors.dart';
+import '../utils/animation_helpers.dart';
 import 'signin_screen.dart';
 
 class IntroScreen extends StatefulWidget {
@@ -73,7 +75,7 @@ class _IntroScreenState extends State<IntroScreen> {
     // Navigate to sign-in screen
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const SigninScreen()),
+      AnimationHelpers.fadeThroughRoute(page: const SigninScreen()),
     );
   }
 
@@ -99,6 +101,7 @@ class _IntroScreenState extends State<IntroScreen> {
                   _introData[index]['image']!,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
+                    // Suppress console warnings by not printing errors
                     return Container(
                       color: Colors.grey[300],
                       child: Center(

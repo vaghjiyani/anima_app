@@ -9,6 +9,7 @@ import '../providers/search_provider.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
+import '../utils/animation_helpers.dart';
 import 'profile_page.dart';
 import 'top_anime_page.dart';
 import 'manga_page.dart';
@@ -37,14 +38,14 @@ class _HomePageState extends State<HomePage> {
     if (index == 1) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const SearchPage()),
+        AnimationHelpers.sharedAxisRoute(page: const SearchPage()),
       );
       return;
     }
     if (index == 2) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const FavoritesPage()),
+        AnimationHelpers.sharedAxisRoute(page: const FavoritesPage()),
       );
       return;
     }
@@ -140,6 +141,20 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: Builder(
+          builder: (context) => GestureDetector(
+            onTap: () => Scaffold.of(context).openDrawer(),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Icon(
+                Icons.menu,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
+              ),
+            ),
+          ),
+        ),
         title: Text(
           'Anima',
           style: TextStyle(
@@ -150,50 +165,49 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         centerTitle: true,
-        iconTheme: IconThemeData(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white
-              : Colors.black,
-        ),
         actions: [
-          IconButton(
-            onPressed: () {
+          GestureDetector(
+            onTap: () {
               final brightness = Theme.of(context).brightness;
               final mode = brightness == Brightness.dark
                   ? ThemeMode.light
                   : ThemeMode.dark;
               appKey.currentState?.setThemeMode(mode);
             },
-            icon: Icon(
-              Theme.of(context).brightness == Brightness.dark
-                  ? Icons.light_mode
-                  : Icons.dark_mode,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Icon(
+                Theme.of(context).brightness == Brightness.dark
+                    ? Icons.light_mode
+                    : Icons.dark_mode,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
+              ),
             ),
-            tooltip: 'Toggle theme',
           ),
-          IconButton(
-            onPressed: () async {
+          GestureDetector(
+            onTap: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()),
+                AnimationHelpers.sharedAxisRoute(page: const ProfilePage()),
               );
               await _loadSavedProfileImage();
             },
-            icon: (_profileImageFile != null)
-                ? CircleAvatar(
-                    radius: 16,
-                    backgroundImage: FileImage(_profileImageFile!),
-                  )
-                : Icon(
-                    Icons.person,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                  ),
-            tooltip: 'Profile',
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: (_profileImageFile != null)
+                  ? CircleAvatar(
+                      radius: 16,
+                      backgroundImage: FileImage(_profileImageFile!),
+                    )
+                  : Icon(
+                      Icons.person,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
+                    ),
+            ),
           ),
         ],
       ),
@@ -416,8 +430,8 @@ class _HomePageState extends State<HomePage> {
                                     onTap: () {
                                       Navigator.push(
                                         context,
-                                        MaterialPageRoute(
-                                          builder: (_) => GenreAnimePage(
+                                        AnimationHelpers.sharedAxisRoute(
+                                          page: GenreAnimePage(
                                             genreName: category,
                                             genreId: genreIds[category]!,
                                           ),
@@ -518,8 +532,8 @@ class _HomePageState extends State<HomePage> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const TopAnimePage(),
+                          AnimationHelpers.sharedAxisRoute(
+                            page: const TopAnimePage(),
                           ),
                         );
                       },
@@ -584,7 +598,9 @@ class _HomePageState extends State<HomePage> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const MangaPage()),
+                          AnimationHelpers.sharedAxisRoute(
+                            page: const MangaPage(),
+                          ),
                         );
                       },
                     ),
@@ -652,8 +668,8 @@ class _HomePageState extends State<HomePage> {
                         print('Magazines See All button tapped');
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const MagazinesPage(),
+                          AnimationHelpers.sharedAxisRoute(
+                            page: const MagazinesPage(),
                           ),
                         );
                       },
@@ -1306,7 +1322,6 @@ class _SearchBarState extends State<_SearchBar>
                           widget.controller.clear();
                           setState(() {});
                         },
-                        tooltip: 'Clear',
                       )
                     : null,
                 border: InputBorder.none,

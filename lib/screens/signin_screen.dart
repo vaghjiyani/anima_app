@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_colors.dart';
 import '../utils/responsive_helper.dart';
+import '../utils/animation_helpers.dart';
 import '../services/auth_service.dart';
 import '../widgets/animated_error_message.dart';
 import 'signup_screen.dart';
@@ -124,7 +125,7 @@ class _SigninScreenState extends State<SigninScreen>
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
+          AnimationHelpers.sharedAxisRoute(page: const HomePage()),
         );
       }
     } catch (e) {
@@ -408,9 +409,8 @@ class _SigninScreenState extends State<SigninScreen>
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ForgotPasswordScreen(),
+                                  AnimationHelpers.sharedAxisRoute(
+                                    page: const ForgotPasswordScreen(),
                                   ),
                                 );
                               },
@@ -488,9 +488,8 @@ class _SigninScreenState extends State<SigninScreen>
                                 onTap: () {
                                   Navigator.pushReplacement(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const SignupScreen(),
+                                    AnimationHelpers.sharedAxisRoute(
+                                      page: const SignupScreen(),
                                     ),
                                   );
                                 },

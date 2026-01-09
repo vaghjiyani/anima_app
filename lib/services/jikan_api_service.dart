@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import '../models/anime.dart';
 import '../models/api_exceptions.dart';
 import 'dio_client.dart';
@@ -311,7 +310,6 @@ class JikanApiService {
         return ApiException(message: 'Bad certificate');
 
       case DioExceptionType.unknown:
-      default:
         return ApiException(message: error.message ?? 'Unknown error occurred');
     }
   }

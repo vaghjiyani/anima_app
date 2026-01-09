@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'intro_screen.dart';
 import '../utils/app_colors.dart';
+import '../utils/animation_helpers.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -104,12 +105,12 @@ class _SplashScreenState extends State<SplashScreen>
       }
     });
 
-    // Navigate to intro screen after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
+    // Navigate to intro screen after 8 seconds
+    Future.delayed(const Duration(seconds: 8), () {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const IntroScreen()),
+          AnimationHelpers.fadeThroughRoute(page: const IntroScreen()),
         );
       }
     });

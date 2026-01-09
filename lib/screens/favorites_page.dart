@@ -21,19 +21,29 @@ class _FavoritesPageState extends State<FavoritesPage> {
   final Map<int, bool> _removingItems = {};
 
   void _handleRemoveFavorite(BuildContext context, Anime anime) async {
+    // Prevent multiple removals
+    if (_removingItems[anime.malId] == true) return;
+
     // Start animation immediately
-    setState(() {
-      _removingItems[anime.malId] = true;
-    });
+    if (mounted) {
+      setState(() {
+        _removingItems[anime.malId] = true;
+      });
+    }
 
     try {
-      // Remove from Firebase first
-      await FavoritesService.removeFromFavorites(anime.malId);
-
-      // Wait a bit for the animation to complete before showing snackbar
+      // Wait for animation to complete
       await Future.delayed(const Duration(milliseconds: 300));
 
+      // Remove from Firebase
+      await FavoritesService.removeFromFavorites(anime.malId);
+
+      // Clean up the removing state
       if (mounted) {
+        setState(() {
+          _removingItems.remove(anime.malId);
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -59,7 +69,18 @@ class _FavoritesPageState extends State<FavoritesPage> {
               label: 'UNDO',
               textColor: Colors.white,
               onPressed: () async {
-                await FavoritesService.addToFavorites(anime);
+                try {
+                  await FavoritesService.addToFavorites(anime);
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to undo: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
             ),
           ),
@@ -74,7 +95,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to remove favorite: ${e.toString()}'),
+            content: Text('Failed to remove: ${e.toString()}'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 3),
@@ -106,8 +127,40 @@ class _FavoritesPageState extends State<FavoritesPage> {
           child: StreamBuilder<List<Anime>>(
             stream: FavoritesService.getFavorites(),
             builder: (context, snapshot) {
+              // Handle loading state
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const AnimeGridShimmer(itemCount: 6);
+              }
+
+              // Handle error state
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error loading favorites',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        snapshot.error.toString(),
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
               }
 
               final favorites = snapshot.data ?? [];
@@ -220,6 +273,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                   final isRemoving = _removingItems[anime.malId] ?? false;
 
                   return AnimatedScale(
+                    key: ValueKey('favorite_${anime.malId}'),
                     scale: isRemoving ? 0.8 : 1.0,
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOut,

@@ -5,6 +5,7 @@ import '../screens/profile_page.dart';
 import '../screens/search_page.dart';
 import '../screens/seasonal_anime_page.dart';
 import '../utils/app_colors.dart';
+import '../utils/animation_helpers.dart';
 import '../services/auth_service.dart';
 import '../screens/signin_screen.dart';
 import '../screens/theme_settings_page.dart';
@@ -69,7 +70,9 @@ class _AppSidebarState extends State<AppSidebar>
           child: SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+                minHeight:
+                    MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top,
               ),
               child: IntrinsicHeight(
                 child: Column(
@@ -78,7 +81,11 @@ class _AppSidebarState extends State<AppSidebar>
                     SizeTransition(
                       sizeFactor: CurvedAnimation(
                         parent: _controller,
-                        curve: const Interval(0.0, 0.6, curve: Curves.easeOutQuart),
+                        curve: const Interval(
+                          0.0,
+                          0.6,
+                          curve: Curves.easeOutQuart,
+                        ),
                       ),
                       axisAlignment: -1.0,
                       child: _AnimatedHeader(controller: _controller),
@@ -122,7 +129,9 @@ class _AppSidebarState extends State<AppSidebar>
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const SearchPage()),
+                              AnimationHelpers.sharedAxisRoute(
+                                page: const SearchPage(),
+                              ),
                             );
                           },
                         ),
@@ -140,7 +149,9 @@ class _AppSidebarState extends State<AppSidebar>
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const TopAnimePage()),
+                              AnimationHelpers.sharedAxisRoute(
+                                page: const TopAnimePage(),
+                              ),
                             );
                           },
                         ),
@@ -158,8 +169,8 @@ class _AppSidebarState extends State<AppSidebar>
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => const SeasonalAnimePage(),
+                              AnimationHelpers.sharedAxisRoute(
+                                page: const SeasonalAnimePage(),
                               ),
                             );
                           },
@@ -178,7 +189,9 @@ class _AppSidebarState extends State<AppSidebar>
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const MangaPage()),
+                              AnimationHelpers.sharedAxisRoute(
+                                page: const MangaPage(),
+                              ),
                             );
                           },
                         ),
@@ -212,7 +225,9 @@ class _AppSidebarState extends State<AppSidebar>
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const ProfilePage()),
+                              AnimationHelpers.sharedAxisRoute(
+                                page: const ProfilePage(),
+                              ),
                             );
                           },
                         ),
@@ -230,8 +245,8 @@ class _AppSidebarState extends State<AppSidebar>
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => const ThemeSettingsPage(),
+                              AnimationHelpers.sharedAxisRoute(
+                                page: const ThemeSettingsPage(),
                               ),
                             );
                           },

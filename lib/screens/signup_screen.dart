@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import '../utils/animation_helpers.dart';
 import '../services/auth_service.dart';
 import '../widgets/animated_error_message.dart';
 import 'signin_screen.dart';
@@ -47,10 +48,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => const SigninScreen(),
-            settings: const RouteSettings(arguments: 'signup_success'),
-          ),
+          AnimationHelpers.sharedAxisRoute(page: const SigninScreen()),
         );
       }
     } catch (e) {
@@ -96,8 +94,8 @@ class _SignupScreenState extends State<SignupScreen> {
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const SigninScreen(),
+                              AnimationHelpers.sharedAxisRoute(
+                                page: const SigninScreen(),
                               ),
                             );
                           },
@@ -359,8 +357,8 @@ class _SignupScreenState extends State<SignupScreen> {
                               onTap: () {
                                 Navigator.pushReplacement(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const SigninScreen(),
+                                  AnimationHelpers.sharedAxisRoute(
+                                    page: const SigninScreen(),
                                   ),
                                 );
                               },
